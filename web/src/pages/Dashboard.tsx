@@ -4,11 +4,11 @@ import { get } from '../api';
 import StatusBadge from '../components/StatusBadge';
 
 export default function Dashboard() {
-  const [authStatus, setAuthStatus] = useState<boolean | null>(null);
+  const [authStatus, setAuthStatus] = useState<{ loggedIn: boolean; hoursRemaining?: number; reason?: string } | null>(null);
   const [history, setHistory] = useState<any[]>([]);
 
   useEffect(() => {
-    get<{ loggedIn: boolean }>('/api/auth/status').then((d) => setAuthStatus(d.loggedIn)).catch(() => setAuthStatus(false));
+    get<{ loggedIn: boolean; hoursRemaining?: number; reason?: string }>('/api/auth/status').then(setAuthStatus).catch(() => setAuthStatus({ loggedIn: false }));
     get<any[]>('/api/history').then(setHistory).catch(() => {});
   }, []);
 
@@ -21,11 +21,17 @@ export default function Dashboard() {
           <h3 className="text-sm text-gray-500 mb-2">账号状态</h3>
           {authStatus === null ? (
             <p className="text-gray-400">检查中...</p>
-          ) : authStatus ? (
-            <p className="text-green-400 font-medium">已登录</p>
+          ) : authStatus.loggedIn ? (
+            <div>
+              <p className="text-green-400 font-medium">已登录</p>
+              {authStatus.hoursRemaining != null && (
+                <p className="text-xs text-gray-500 mt-1">Cookie 剩余 {authStatus.hoursRemaining} 小时</p>
+              )}
+            </div>
           ) : (
             <div>
-              <p className="text-red-400 font-medium mb-3">未登录</p>
+              <p className="text-red-400 font-medium mb-1">未登录</p>
+              {authStatus.reason && <p className="text-xs text-gray-500 mb-2">{authStatus.reason}</p>}
               <Link to="/auth" className="text-sm text-indigo-400 hover:underline">去登录 →</Link>
             </div>
           )}

@@ -8,12 +8,36 @@ route('GET', '/api/auth/status', async (_req, res) => {
   try {
     const config = await loadConfig();
     const cookies = await loadCookies(config.xhs.cookiePath);
-    const hasCookies = cookies !== null && cookies.length > 0;
-    // Check if key XHS cookies exist
-    const hasSession = hasCookies && cookies!.some(
-      (c) => c.domain.includes('xiaohongshu') && ['a1', 'web_session', 'webId'].includes(c.name),
-    );
-    json(res, { loggedIn: hasSession });
+    if (!cookies || cookies.length === 0) {
+      json(res, { loggedIn: false, reason: '无 Cookie 文件' });
+      return;
+    }
+
+    const now = Date.now() / 1000;
+    const KEY_COOKIES = ['a1', 'web_session', 'webId'];
+    const xhsCookies = cookies.filter((c) => c.domain.includes('xiaohongshu'));
+    const keyCookies = xhsCookies.filter((c) => KEY_COOKIES.includes(c.name));
+
+    if (keyCookies.length === 0) {
+      json(res, { loggedIn: false, reason: '缺少关键 Cookie' });
+      return;
+    }
+
+    // Check if any key cookie with a real expiry has expired
+    // expires=-1 means session cookie (valid until browser closes, treat as valid)
+    const expiredKey = keyCookies.find((c) => c.expires > 0 && c.expires < now);
+    if (expiredKey) {
+      json(res, { loggedIn: false, reason: `Cookie "${expiredKey.name}" 已过期` });
+      return;
+    }
+
+    // Calculate hours remaining from key cookies (ignore session cookies with expires=-1)
+    const keyWithExpiry = keyCookies.filter((c) => c.expires > 0);
+    const hoursRemaining = keyWithExpiry.length > 0
+      ? Math.round((Math.min(...keyWithExpiry.map((c) => c.expires)) - now) / 3600 * 10) / 10
+      : null;
+
+    json(res, { loggedIn: true, hoursRemaining });
   } catch {
     json(res, { loggedIn: false });
   }
