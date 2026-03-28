@@ -50,7 +50,8 @@ program
 
 program
   .command('preview <dir>')
-  .description('Preview generated cards in browser')
+  .description('Preview and edit cards in browser')
+  .option('-p, --port <number>', 'Server port (0 = auto)')
   .action(previewCommand);
 
 program

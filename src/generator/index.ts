@@ -1,6 +1,10 @@
 import React from 'react';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, basename } from 'node:path';
+import { unified } from 'unified';
+import remarkParse from 'remark-parse';
+import remarkRehype from 'remark-rehype';
+import rehypeStringify from 'rehype-stringify';
 import type { ParsedDocument } from '../parser/types.js';
 import type { ContentStrategy, CardPlan } from '../strategy/index.js';
 import { getTheme } from './themes/index.js';
@@ -125,11 +129,12 @@ export async function generateImages(
         outPath,
       );
     } else {
-      const bodyText = stripHeading(block.textContent, block.heading);
+      const bodyMd = stripHeading(block.markdownContent, block.heading ? `## ${block.heading}` : undefined)
+        || stripHeading(block.markdownContent, block.heading);
       await renderReactCard(
         React.createElement(ContentCard, {
           theme, heading: block.heading || '',
-          bodyHtml: textToHtml(bodyText), pageNum,
+          bodyHtml: textToHtml(bodyMd), pageNum,
         }),
         outPath,
       );
@@ -174,8 +179,19 @@ export async function generateImages(
 }
 
 function textToHtml(text: string): string {
-  return text.split('\n').filter((l) => l.trim())
-    .map((l) => `<p style="margin-bottom:20px;text-align:justify">${escapeHtml(l)}</p>`).join('\n');
+  // Try Markdown rendering first
+  try {
+    const result = unified()
+      .use(remarkParse)
+      .use(remarkRehype)
+      .use(rehypeStringify)
+      .processSync(text);
+    return String(result);
+  } catch {
+    // Fallback to simple paragraphs
+    return text.split('\n').filter((l) => l.trim())
+      .map((l) => `<p>${escapeHtml(l)}</p>`).join('\n');
+  }
 }
 
 function escapeHtml(s: string): string {

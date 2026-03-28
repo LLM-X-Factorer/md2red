@@ -238,7 +238,7 @@ function removeCard(i) {
 }
 
 // --- Export ---
-function exportPlan() {
+async function exportPlan() {
   const plan = {
     title: getSelectedTitle(),
     summary: document.getElementById('summaryBox').value,
@@ -246,12 +246,27 @@ function exportPlan() {
     imageOrder: imageOrder,
     confirmedAt: new Date().toISOString()
   };
-  const blob = new Blob([JSON.stringify(plan, null, 2)], {type: 'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'publish-plan.json';
-  a.click();
-  showToast('publish-plan.json 已下载，运行 md2red publish 发布');
+  try {
+    const res = await fetch('/save-plan', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(plan, null, 2)
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast('已保存! 运行 md2red publish 发布');
+    } else {
+      showToast('保存失败: ' + data.error);
+    }
+  } catch(e) {
+    // Fallback: browser download (when opened as static file)
+    const blob = new Blob([JSON.stringify(plan, null, 2)], {type: 'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'publish-plan.json';
+    a.click();
+    showToast('publish-plan.json 已下载（请移到输出目录）');
+  }
 }
 function showToast(msg) {
   const t = document.getElementById('toast');
