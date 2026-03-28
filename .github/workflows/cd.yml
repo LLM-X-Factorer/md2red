@@ -1,28 +1,36 @@
 name: CD
 
 on:
-  # commit message 包含 [deploy] 时自动部署
   push:
     branches: [main]
-  # 支持手动触发
   workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # push 事件时只在 commit message 包含 [deploy] 时才部署；手动触发时始终部署
     if: >
       github.event_name == 'workflow_dispatch' ||
       contains(github.event.head_commit.message, '[deploy]')
 
     steps:
-      - name: Deploy to Lighthouse server
+      - name: Deploy to Lighthouse via SSH
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
           script: |
-            export DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
-            cd "${DEPLOY_PATH:-/opt/md2red}"
-            bash scripts/deploy.sh
+            DEPLOY_PATH="${{ secrets.DEPLOY_PATH || '/opt/md2red' }}"
+            cd "$DEPLOY_PATH"
+
+            # Pull latest code
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Rebuild and restart container
+            docker compose build --no-cache
+            docker compose up -d
+
+            # Verify
+            docker compose run --rm md2red --version
+            echo "Deploy complete: $(date)"

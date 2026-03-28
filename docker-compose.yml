@@ -1,0 +1,19 @@
+services:
+  md2red:
+    build: .
+    volumes:
+      # Cookie 和历史数据持久化
+      - md2red-data:/data
+      # Markdown 文件和输出目录（映射宿主机目录）
+      - ./articles:/articles
+      - ./output:/output
+    ports:
+      # auth serve 扫码端口
+      - "9876:9876"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+
+volumes:
+  md2red-data:

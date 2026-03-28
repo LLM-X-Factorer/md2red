@@ -1,0 +1,10 @@
+node_modules
+dist
+md2red-output
+test-results
+playwright-report
+e2e
+*.test.ts
+.git
+.github
+.env
