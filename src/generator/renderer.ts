@@ -1,10 +1,34 @@
 import { chromium, type Browser } from 'playwright';
+import { execSync } from 'node:child_process';
 
 let browser: Browser | null = null;
 
+function findChrome(): string | undefined {
+  const paths = [
+    process.env.CHROME_PATH,
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+  ];
+  for (const p of paths) {
+    if (!p) continue;
+    try {
+      execSync(`test -x ${p}`, { stdio: 'ignore' });
+      return p;
+    } catch { continue; }
+  }
+  return undefined;
+}
+
 async function getBrowser(): Promise<Browser> {
   if (!browser) {
-    browser = await chromium.launch();
+    const executablePath = findChrome();
+    browser = await chromium.launch({
+      headless: true,
+      ...(executablePath ? { executablePath } : { channel: 'chrome' }),
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
   }
   return browser;
 }
