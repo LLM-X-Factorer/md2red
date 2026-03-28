@@ -35,24 +35,28 @@ route('POST', '/api/upload', async (req, res) => {
 function parseUpload(req: import('node:http').IncomingMessage): Promise<{ filePath: string; fileName: string }> {
   return new Promise((resolve, reject) => {
     const busboy = Busboy({ headers: req.headers });
-    let savedPath = '';
-    let savedName = '';
+    let fileWritePromise: Promise<{ filePath: string; fileName: string }> | null = null;
 
     busboy.on('file', (_fieldname, stream, info) => {
       const fileName = info.filename || `upload-${Date.now()}.md`;
-      savedName = fileName;
       const chunks: Buffer[] = [];
       stream.on('data', (chunk: Buffer) => chunks.push(chunk));
-      stream.on('end', async () => {
-        const filePath = join(UPLOAD_DIR, `${Date.now()}-${fileName}`);
-        await writeFile(filePath, Buffer.concat(chunks));
-        savedPath = filePath;
+
+      fileWritePromise = new Promise((res) => {
+        stream.on('end', async () => {
+          const filePath = join(UPLOAD_DIR, `${Date.now()}-${fileName}`);
+          await writeFile(filePath, Buffer.concat(chunks));
+          res({ filePath, fileName });
+        });
       });
     });
 
-    busboy.on('finish', () => {
-      if (savedPath) resolve({ filePath: savedPath, fileName: savedName });
-      else reject(new Error('No file uploaded'));
+    busboy.on('finish', async () => {
+      if (fileWritePromise) {
+        resolve(await fileWritePromise);
+      } else {
+        reject(new Error('No file uploaded'));
+      }
     });
     busboy.on('error', reject);
     req.pipe(busboy);
