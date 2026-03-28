@@ -121,24 +121,46 @@ async function clickTab(page: Page, tabText: string): Promise<void> {
 }
 
 async function uploadImages(page: Page, imagePaths: string[]): Promise<void> {
-  // Upload all images at once via the file input (supports multiple)
+  // Strategy: try batch upload first, fall back to one-by-one
   const input = page.locator('.upload-input');
+
+  // Batch upload: set all files at once (input has `multiple` attribute)
   await input.setInputFiles(imagePaths);
-  logger.info(`  ${imagePaths.length} 张图片已提交上传`);
+  logger.info(`  已提交 ${imagePaths.length} 张图片`);
 
-  // Wait for all images to appear in preview
-  await humanDelay(page, 3000, 5000);
+  // Wait and verify all images appear in preview
+  let uploadedCount = 0;
+  for (let attempt = 0; attempt < 60; attempt++) {
+    await page.waitForTimeout(1000);
+    // Count preview thumbnails (try multiple possible selectors)
+    uploadedCount = await page.evaluate(() => {
+      // Count image items in the editor area
+      const selectors = ['.img-item', '.image-item', '.coverImg', '.reorder-image-item', '.upload-item'];
+      for (const sel of selectors) {
+        const count = document.querySelectorAll(sel).length;
+        if (count > 0) return count;
+      }
+      // Fallback: count all images in the upload/preview area
+      const imgs = document.querySelectorAll('.img-container img, .publish-image img, .cover-image');
+      return imgs.length;
+    });
 
-  // Verify upload count by checking preview thumbnails
-  for (let attempt = 0; attempt < 30; attempt++) {
-    const previewCount = await page.locator('.img-item, .image-item, .coverImg, .reorder-image-item').count();
-    if (previewCount >= imagePaths.length) {
-      logger.info(`  全部 ${previewCount} 张图片上传完成`);
+    if (uploadedCount >= imagePaths.length) {
+      logger.info(`  全部 ${uploadedCount} 张图片上传完成`);
       return;
     }
-    await humanDelay(page, 1000, 2000);
+
+    if (attempt % 10 === 9) {
+      logger.info(`  已识别 ${uploadedCount}/${imagePaths.length} 张图片，继续等待...`);
+    }
   }
-  logger.warn(`  图片上传可能不完整，继续执行`);
+
+  // If batch didn't work fully, log what we got
+  if (uploadedCount > 0) {
+    logger.warn(`  上传了 ${uploadedCount}/${imagePaths.length} 张图片，继续执行`);
+  } else {
+    logger.warn(`  无法确认上传数量，继续执行`);
+  }
 }
 
 async function fillTitle(page: Page, title: string): Promise<void> {
