@@ -59,6 +59,7 @@ program
   .description('Publish to Xiaohongshu from output directory')
   .option('-c, --config <path>', 'Config file path')
   .option('--dry-run', 'Simulate publish without actually posting')
+  .option('--draft', 'Save as draft instead of publishing')
   .option('--force', 'Force publish even if already published')
   .action(publishCommand);
 

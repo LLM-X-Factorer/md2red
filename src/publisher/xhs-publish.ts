@@ -13,6 +13,7 @@ export interface PublishOptions {
   visibility: '公开可见' | '仅自己可见' | '仅互关好友可见';
   cookiePath: string;
   publishDelay: number;
+  draft?: boolean;
 }
 
 export interface PublishResult {
@@ -86,13 +87,18 @@ async function attemptPublish(options: PublishOptions): Promise<PublishResult> {
     // 8. Human-like delay before publish
     await humanDelay(page, options.publishDelay, options.publishDelay + 2000);
 
-    // 9. Click publish button (by text)
-    logger.info('点击发布...');
-    await clickPublishButton(page);
+    // 9. Click publish or save draft
+    if (options.draft) {
+      logger.info('保存草稿...');
+      await clickButtonByText(page, '暂存离开');
+    } else {
+      logger.info('点击发布...');
+      await clickButtonByText(page, '发布');
+    }
     await humanDelay(page, 3000, 5000);
 
     await persistCookies(options.cookiePath);
-    logger.success('发布成功');
+    logger.success(options.draft ? '草稿保存成功' : '发布成功');
     return { success: true };
   } catch (err) {
     const message = (err as Error).message;
@@ -189,20 +195,13 @@ async function setVisibility(page: Page, visibility: string): Promise<void> {
   throw new Error(`找不到可见性选项: ${visibility}`);
 }
 
-async function clickPublishButton(page: Page): Promise<void> {
-  // Find button by text content "发布" (not "暂存离开")
-  const clicked = await page.evaluate(() => {
-    const buttons = document.querySelectorAll('button');
-    for (const btn of buttons) {
-      if (btn.textContent?.trim() === '发布') {
-        (btn as HTMLElement).click();
-        return true;
-      }
-    }
-    return false;
-  });
+async function clickButtonByText(page: Page, text: string): Promise<void> {
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await humanDelay(page, 300, 600);
 
-  if (!clicked) {
-    throw new Error('找不到发布按钮');
-  }
+  const btn = page.locator('button').filter({ hasText: new RegExp(`^${text}$`) });
+  if ((await btn.count()) === 0) throw new Error(`找不到按钮: ${text}`);
+  await btn.first().scrollIntoViewIfNeeded();
+  await humanDelay(page, 200, 400);
+  await btn.first().click();
 }

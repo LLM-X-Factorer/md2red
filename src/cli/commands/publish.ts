@@ -15,7 +15,7 @@ interface PublishPlan {
 
 export async function publishCommand(
   dir: string,
-  opts: { config?: string; dryRun?: boolean; force?: boolean },
+  opts: { config?: string; dryRun?: boolean; force?: boolean; draft?: boolean },
 ) {
   try {
     const config = await loadConfig(opts.config);
@@ -92,6 +92,7 @@ export async function publishCommand(
       visibility: config.xhs.visibility,
       cookiePath: config.xhs.cookiePath,
       publishDelay: config.xhs.publishDelay,
+      draft: opts.draft,
     });
 
     if (result.success) {
