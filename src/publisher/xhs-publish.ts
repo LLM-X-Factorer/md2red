@@ -121,18 +121,24 @@ async function clickTab(page: Page, tabText: string): Promise<void> {
 }
 
 async function uploadImages(page: Page, imagePaths: string[]): Promise<void> {
-  for (let i = 0; i < imagePaths.length; i++) {
-    // Use locator to handle hidden file inputs
-    const inputs = page.locator('input[type="file"]');
-    const count = await inputs.count();
-    const input = inputs.nth(count - 1); // use the last available file input
-    await input.setInputFiles(imagePaths[i]);
+  // Upload all images at once via the file input (supports multiple)
+  const input = page.locator('.upload-input');
+  await input.setInputFiles(imagePaths);
+  logger.info(`  ${imagePaths.length} 张图片已提交上传`);
 
-    logger.info(`  图片 ${i + 1}/${imagePaths.length} 上传完成`);
-    await humanDelay(page, 1500, 3000);
+  // Wait for all images to appear in preview
+  await humanDelay(page, 3000, 5000);
+
+  // Verify upload count by checking preview thumbnails
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const previewCount = await page.locator('.img-item, .image-item, .coverImg, .reorder-image-item').count();
+    if (previewCount >= imagePaths.length) {
+      logger.info(`  全部 ${previewCount} 张图片上传完成`);
+      return;
+    }
+    await humanDelay(page, 1000, 2000);
   }
-  // Wait for all previews to stabilize
-  await humanDelay(page, 2000, 4000);
+  logger.warn(`  图片上传可能不完整，继续执行`);
 }
 
 async function fillTitle(page: Page, title: string): Promise<void> {
