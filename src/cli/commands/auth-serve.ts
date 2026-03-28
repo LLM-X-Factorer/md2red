@@ -1,11 +1,14 @@
 import { createServer } from 'node:http';
 import { loadConfig } from '../../config/index.js';
-import { getQrCode, waitForLogin, closeBrowser } from '../../publisher/index.js';
+import { getQrCode, waitForLogin, closeBrowser, setHeadless } from '../../publisher/index.js';
 import { logger } from '../../utils/logger.js';
 
 export async function authServeCommand(opts: { config?: string; port?: string }) {
   const config = await loadConfig(opts.config);
   const port = parseInt(opts.port || '9876', 10);
+
+  // Use headful mode (Xvfb in Docker) — headless gets detected by XHS
+  setHeadless(false);
 
   let qrBase64: string;
   try {
@@ -55,9 +58,9 @@ export async function authServeCommand(opts: { config?: string; port?: string })
 </body></html>`);
   });
 
-  server.listen(port, () => {
-    logger.success(`扫码页面已启动: http://localhost:${port}`);
-    logger.info('用浏览器打开上述地址，用小红书 App 扫码');
+  server.listen(port, '0.0.0.0', () => {
+    logger.success(`扫码页面已启动: http://0.0.0.0:${port}`);
+    logger.info('用浏览器打开 http://服务器IP:' + port + ' 扫码');
   });
 
   // Wait for login in background
