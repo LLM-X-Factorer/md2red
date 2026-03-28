@@ -3,6 +3,8 @@ import { join } from 'node:path';
 import { route, json, readBody } from '../router.js';
 import { createTask, updateTask, completeTask, failTask, getTask } from '../task-manager.js';
 import { publishNote, closeBrowser } from '../../publisher/index.js';
+import { createRecord, markPublished, markFailed } from '../../tracker/index.js';
+import { fileHash } from '../../utils/hash.js';
 import { loadConfig } from '../../config/index.js';
 
 route('POST', '/api/publish', async (req, res) => {
@@ -16,10 +18,9 @@ route('POST', '/api/publish', async (req, res) => {
       return;
     }
 
-    const result = genTask.result as { outputDir: string };
-    const outputDir = result.outputDir;
+    const genResult = genTask.result as { outputDir: string; title: string; imageCount?: number };
+    const outputDir = genResult.outputDir;
 
-    // Read publish plan or strategy
     let title: string;
     let summary: string;
     let tags: string[];
@@ -46,9 +47,14 @@ route('POST', '/api/publish', async (req, res) => {
     (async () => {
       try {
         const config = await loadConfig();
-        updateTask(pubTask.id, { step: 1, total: 3, message: '准备发布...' });
 
+        // Create tracker record
+        const hash = Date.now().toString(36);
+        const recordId = await createRecord(outputDir, hash, title, imagePaths.length, outputDir);
+
+        updateTask(pubTask.id, { step: 1, total: 3, message: '准备发布...' });
         updateTask(pubTask.id, { step: 2, total: 3, message: draft ? '保存草稿...' : '发布中...' });
+
         const pubResult = await publishNote({
           title,
           content: summary,
@@ -62,9 +68,11 @@ route('POST', '/api/publish', async (req, res) => {
         await closeBrowser();
 
         if (pubResult.success) {
+          await markPublished(recordId);
           updateTask(pubTask.id, { step: 3, total: 3, message: '完成' });
-          completeTask(pubTask.id, { success: true, draft: !!draft });
+          completeTask(pubTask.id, { success: true, draft: !!draft, title });
         } else {
+          await markFailed(recordId, pubResult.error || '发布失败');
           failTask(pubTask.id, pubResult.error || '发布失败');
         }
       } catch (err) {
