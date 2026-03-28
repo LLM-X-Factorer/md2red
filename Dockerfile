@@ -1,7 +1,6 @@
 FROM node:20-slim
 
-# System deps: Chrome + Xvfb + Chinese fonts
-# Use Tencent Cloud mirrors for faster downloads in China
+# System deps: Chrome + Xvfb + Chinese fonts (cached, rarely changes)
 RUN echo "deb http://mirrors.cloud.tencent.com/debian/ bookworm main contrib non-free non-free-firmware" > /etc/apt/sources.list && \
     echo "deb http://mirrors.cloud.tencent.com/debian/ bookworm-updates main contrib non-free non-free-firmware" >> /etc/apt/sources.list && \
     echo "deb http://mirrors.cloud.tencent.com/debian-security bookworm-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list && \
@@ -23,27 +22,28 @@ WORKDIR /app
 # npm China mirror
 RUN npm config set registry https://registry.npmmirror.com
 
-# Install dependencies (layer cache on lockfile)
+# Install dependencies (cached unless package-lock.json changes)
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Build backend
+# --- Source code layers (busted by CACHE_BUST arg) ---
+ARG CACHE_BUST=1
 COPY tsconfig.json ./
 COPY src/ ./src/
 RUN npm run build
 
-# Build frontend
 COPY web/ ./web/
 RUN npm run build:web
 
-# Prune dev deps for smaller image
+# Prune dev deps
 RUN npm prune --omit=dev
+
+# Entrypoint (also busted by CACHE_BUST)
+COPY scripts/docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 VOLUME ["/data"]
 ENV CHROME_PATH=/usr/bin/google-chrome
-
-COPY scripts/docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 3001
 ENTRYPOINT ["docker-entrypoint.sh"]

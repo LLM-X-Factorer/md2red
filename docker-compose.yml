@@ -1,6 +1,9 @@
 services:
   md2red:
-    build: .
+    build:
+      context: .
+      args:
+        CACHE_BUST: ${CACHE_BUST:-1}
     volumes:
       - md2red-data:/data
       - ./articles:/articles
