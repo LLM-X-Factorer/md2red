@@ -1,6 +1,6 @@
 import React from 'react';
-import { mkdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { mkdir, writeFile } from 'node:fs/promises';
+import { join, basename } from 'node:path';
 import type { ParsedDocument } from '../parser/types.js';
 import type { ContentStrategy, CardPlan } from '../strategy/index.js';
 import { getTheme } from './themes/index.js';
@@ -149,6 +149,25 @@ export async function generateImages(
   );
   outputPaths.push(summaryPath);
   logger.success(`总结页: ${summaryPath}`);
+
+  // Auto-generate strategy.json for direct mode (so preview sidebar works)
+  const autoStrategy = {
+    titles: [doc.title],
+    summary: doc.contentBlocks
+      .map((b) => stripHeading(b.textContent, b.heading))
+      .filter((t) => t.trim())
+      .join('\n')
+      .slice(0, 500),
+    tags: [] as string[],
+    cardPlan: outputPaths.map((p, i) => ({
+      index: i,
+      type: i === 0 ? 'cover' : i === outputPaths.length - 1 ? 'summary' : 'content',
+      title: i === 0 ? doc.title : doc.contentBlocks[i - 1]?.heading || '',
+      bodyText: '',
+      layoutHint: 'text-heavy',
+    })),
+  };
+  await writeFile(join(outputDir, 'strategy.json'), JSON.stringify(autoStrategy, null, 2));
 
   await closeBrowser();
   return outputPaths;

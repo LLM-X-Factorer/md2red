@@ -1,5 +1,5 @@
 import { resolve, basename } from 'node:path';
-import { writeFile } from 'node:fs/promises';
+import { writeFile, readFile } from 'node:fs/promises';
 import { parseMarkdown } from '../../parser/index.js';
 import { generateImages, generateFromStrategy } from '../../generator/index.js';
 import { generateStrategy } from '../../strategy/index.js';
@@ -56,8 +56,14 @@ export async function runCommand(
     // 4. Track
     await createRecord(absFile, hash, doc.title, paths.length, outputDir);
 
-    // 5. Preview
+    // 5. Preview — load strategy from file (works for both LLM and direct modes)
     logger.info('Step 4/4: 生成预览');
+    if (!strategy) {
+      try {
+        const raw = await readFile(resolve(outputDir, 'strategy.json'), 'utf-8');
+        strategy = JSON.parse(raw);
+      } catch { /* no strategy available */ }
+    }
     const previewPath = await generatePreview({ outputDir, strategy });
     openInBrowser(previewPath);
 
