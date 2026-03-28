@@ -321,7 +321,7 @@ node dist/web/server.js    # 后端 API (3001)
 
 ## Docker 部署
 
-推荐使用 Docker 部署到云服务器（如腾讯云 Lighthouse 2C4G）：
+已在腾讯云 Lighthouse (2C4G Ubuntu 22.04) 上验证通过：
 
 ```bash
 # 1. 克隆项目
@@ -331,11 +331,15 @@ cd /opt/md2red
 # 2. 配置环境变量（可选，用于 LLM 策略）
 echo "GEMINI_API_KEY=your-key" > .env
 
-# 3. 构建并启动
+# 3. 构建并启动（首次约 10 分钟，后续有缓存会很快）
+docker compose build
 docker compose up -d
 
 # 4. 访问 Web 控制台
 # 浏览器打开 http://服务器IP:3001
+
+# 后续更新代码：
+git pull && CACHE_BUST=$(date +%s) docker compose build && docker compose restart
 ```
 
 Docker 镜像内置 Chrome + Xvfb + 中文字体，使用腾讯云镜像源加速构建。

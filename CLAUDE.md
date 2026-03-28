@@ -81,10 +81,13 @@ docker compose run --rm md2red generate /articles/article.md
 
 以下是实际部署中踩过的坑，修改相关代码时务必注意：
 
-1. **Playwright 必须用系统 Chrome**：Docker 里没有 Playwright bundled Chromium。`renderer.ts` 和 `xhs-browser.ts` 都必须通过 `executablePath` 或 `channel: 'chrome'` 使用 `/usr/bin/google-chrome`
-2. **Xvfb 后台启动**：不要用 `xvfb-run`（会导致 node 进程启动失败），用 `Xvfb :99 &` + `export DISPLAY=:99`
-3. **apt 镜像源用 HTTP**：base 镜像没有 ca-certificates，必须用 `http://mirrors.cloud.tencent.com` 而非 https
-4. **MD2RED_DATA_DIR**：entrypoint 必须 export，否则上传和输出路径不持久化（默认到 /app 里，重启丢失）
+1. **Chrome 必须用 CDP 连接模式**：`renderer.ts` 和 `xhs-browser.ts` 都用独立启动 Chrome + `connectOverCDP()`。不要用 `executablePath`（Playwright 注入的 flags 会导致 SIGSEGV）
+2. **Xvfb 后台启动**：不要用 `xvfb-run`（无法启动 node），用 `Xvfb :99 &` + `export DISPLAY=:99`
+3. **Chrome spawn 传 DISPLAY**：`spawn(chrome, args, { env: { ...process.env, DISPLAY: ':99' } })`
+4. **apt 镜像源用 HTTP**：base 镜像没有 ca-certificates，必须用 `http://` 而非 `https://`
+5. **MD2RED_DATA_DIR**：entrypoint 必须 export，否则上传和输出路径不持久化
+6. **图片上传用批量模式**：`setInputFiles(allPaths)` 一次传所有图片，逐个上传只传第一张
+7. **草稿功能在 Docker 里无效**：XHS 草稿存浏览器 localStorage，Web 控制台只做"仅自己可见"发布
 5. **Cookie 文件路径**：通过 symlink `~/.md2red → /data` 映射到 volume，确保 `loadCookies` 能找到
 6. **CDP 连接模式**：`xhs-browser.ts` 独立启动 Chrome 再通过 CDP 连接，减少自动化检测。注意 page 生命周期——不要在 auth 流程中途关闭 page
 7. **Docker build 缓存**：修改 src/ 后如果 build 没生效，`touch tsconfig.json` 让 Docker 检测到变化，避免 `--no-cache`（会重新下载 Chrome，非常慢）
