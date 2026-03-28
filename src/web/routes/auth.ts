@@ -1,6 +1,7 @@
-import { route, json } from '../router.js';
+import { route, json, readBody } from '../router.js';
 import { createTask, updateTask, completeTask, failTask, addListener } from '../task-manager.js';
 import { checkLogin, getQrCode, waitForLogin, closeBrowser, setHeadless } from '../../publisher/index.js';
+import { saveCookies, type CookieData } from '../../publisher/cookie.js';
 import { loadConfig } from '../../config/index.js';
 
 route('GET', '/api/auth/status', async (_req, res) => {
@@ -49,4 +50,63 @@ route('GET', '/api/auth/poll/:taskId', (req, res, params) => {
     'Access-Control-Allow-Origin': '*',
   });
   addListener(params.taskId, res);
+});
+
+route('POST', '/api/auth/cookie', async (req, res) => {
+  try {
+    const config = await loadConfig();
+    const body = JSON.parse(await readBody(req));
+    const rawCookie: string = body.cookie;
+
+    let cookies: CookieData;
+
+    // Try parsing as JSON array first (e.g. from EditThisCookie export)
+    try {
+      const parsed = JSON.parse(rawCookie);
+      if (Array.isArray(parsed)) {
+        cookies = parsed.map((c: Record<string, unknown>) => ({
+          name: String(c.name || ''),
+          value: String(c.value || ''),
+          domain: String(c.domain || '.xiaohongshu.com'),
+          path: String(c.path || '/'),
+          expires: Number(c.expirationDate || c.expires || -1),
+          httpOnly: Boolean(c.httpOnly),
+          secure: Boolean(c.secure),
+          sameSite: (c.sameSite as 'Lax') || 'Lax',
+        }));
+      } else {
+        throw new Error('not array');
+      }
+    } catch {
+      // Parse as "key=value; key=value" string format
+      cookies = rawCookie
+        .split(';')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((pair) => {
+          const idx = pair.indexOf('=');
+          return {
+            name: pair.slice(0, idx).trim(),
+            value: pair.slice(idx + 1).trim(),
+            domain: '.xiaohongshu.com',
+            path: '/',
+            expires: -1,
+            httpOnly: false,
+            secure: true,
+            sameSite: 'Lax' as const,
+          };
+        })
+        .filter((c) => c.name);
+    }
+
+    if (cookies.length === 0) {
+      json(res, { ok: false, error: 'Cookie 解析失败，格式不正确' }, 400);
+      return;
+    }
+
+    await saveCookies(config.xhs.cookiePath, cookies);
+    json(res, { ok: true, count: cookies.length });
+  } catch (err) {
+    json(res, { ok: false, error: (err as Error).message }, 500);
+  }
 });
