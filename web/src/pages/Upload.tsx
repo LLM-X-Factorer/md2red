@@ -9,8 +9,10 @@ export default function Upload() {
   const [file, setFile] = useState<File | null>(null);
   const [parsed, setParsed] = useState<any>(null);
   const [uploading, setUploading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [useStrategy, setUseStrategy] = useState(false);
   const [theme, setTheme] = useState('dark');
+  const [error, setError] = useState<string | null>(null);
   const sse = useSSE();
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -22,11 +24,12 @@ export default function Upload() {
   const handleUpload = async () => {
     if (!file) return;
     setUploading(true);
+    setError(null);
     try {
       const data = await uploadFile('/api/upload', file) as any;
       setParsed(data);
     } catch (err: any) {
-      alert('上传失败: ' + err.message);
+      setError('上传失败: ' + err.message);
     } finally {
       setUploading(false);
     }
@@ -34,6 +37,8 @@ export default function Upload() {
 
   const handleGenerate = async () => {
     if (!parsed) return;
+    setGenerating(true);
+    setError(null);
     try {
       const data = await post<{ taskId: string }>('/api/generate', {
         filePath: parsed.filePath,
@@ -42,17 +47,24 @@ export default function Upload() {
       });
       sse.connect(data.taskId);
 
-      // Watch for completion to navigate
+      // Poll for completion → navigate to preview
       const check = setInterval(async () => {
-        const res = await fetch(`/api/tasks/${data.taskId}`);
-        const task = await res.json();
-        if (task.status === 'completed') {
-          clearInterval(check);
-          navigate(`/preview/${data.taskId}`);
-        }
+        try {
+          const res = await fetch(`/api/tasks/${data.taskId}`);
+          const task = await res.json();
+          if (task.status === 'completed') {
+            clearInterval(check);
+            navigate(`/preview/${data.taskId}`);
+          } else if (task.status === 'failed') {
+            clearInterval(check);
+            setError('生成失败: ' + (task.error || '未知错误'));
+            setGenerating(false);
+          }
+        } catch { /* ignore polling errors */ }
       }, 1000);
     } catch (err: any) {
-      alert('生成失败: ' + err.message);
+      setError('生成失败: ' + err.message);
+      setGenerating(false);
     }
   };
 
@@ -60,8 +72,14 @@ export default function Upload() {
     <div>
       <h2 className="text-2xl font-bold mb-8">上传 Markdown</h2>
 
+      {error && (
+        <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-4 mb-6">
+          <p className="text-red-400 text-sm">{error}</p>
+        </div>
+      )}
+
       {/* Step 1: Upload */}
-      {!parsed && (
+      {!parsed && !generating && (
         <div
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
@@ -89,7 +107,7 @@ export default function Upload() {
       )}
 
       {/* Step 2: Parsed result + generate options */}
-      {parsed && sse.status === 'idle' && (
+      {parsed && !generating && (
         <div className="space-y-6">
           <div className="rounded-xl bg-gray-900 border border-gray-800 p-6">
             <h3 className="font-semibold mb-4">解析结果</h3>
@@ -127,14 +145,23 @@ export default function Upload() {
       )}
 
       {/* Step 3: Progress */}
-      {sse.status !== 'idle' && sse.progress && (
-        <TaskProgress
-          step={sse.progress.step}
-          total={sse.progress.total}
-          message={sse.progress.message}
-          status={sse.status as any}
-          error={sse.error}
-        />
+      {generating && (
+        <div className="space-y-4">
+          {sse.progress ? (
+            <TaskProgress
+              step={sse.progress.step}
+              total={sse.progress.total}
+              message={sse.progress.message}
+              status={sse.status === 'failed' ? 'failed' : sse.status === 'completed' ? 'completed' : 'running'}
+              error={sse.error}
+            />
+          ) : (
+            <div className="rounded-xl bg-gray-900 border border-gray-800 p-6 text-center">
+              <div className="inline-block w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3" />
+              <p className="text-gray-400 text-sm">正在启动生成任务...</p>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

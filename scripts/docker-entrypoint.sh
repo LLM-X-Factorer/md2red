@@ -2,8 +2,9 @@
 # md2red Docker entrypoint
 
 # Persistent data directory
-mkdir -p /data
+mkdir -p /data /data/uploads /data/output
 ln -sfn /data "$HOME/.md2red"
+export MD2RED_DATA_DIR=/data
 
 # Start Xvfb in background (needed for headful Chrome)
 Xvfb :99 -screen 0 1920x1080x24 -nolisten tcp &
