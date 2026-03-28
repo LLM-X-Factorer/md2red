@@ -7,12 +7,13 @@ import { loadConfig } from '../../config/index.js';
 route('GET', '/api/auth/status', async (_req, res) => {
   try {
     const config = await loadConfig();
-    // Check cookie file directly (no browser needed)
-    const expiry = await getCookieExpiry(config.xhs.cookiePath);
-    json(res, {
-      loggedIn: expiry.hasCookies && !expiry.isExpired,
-      hoursRemaining: expiry.hoursRemaining,
-    });
+    const cookies = await loadCookies(config.xhs.cookiePath);
+    const hasCookies = cookies !== null && cookies.length > 0;
+    // Check if key XHS cookies exist
+    const hasSession = hasCookies && cookies!.some(
+      (c) => c.domain.includes('xiaohongshu') && ['a1', 'web_session', 'webId'].includes(c.name),
+    );
+    json(res, { loggedIn: hasSession });
   } catch {
     json(res, { loggedIn: false });
   }
