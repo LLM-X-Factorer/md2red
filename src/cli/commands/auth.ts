@@ -1,8 +1,7 @@
-import { writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { tmpdir } from 'node:os';
 import { loadConfig } from '../../config/index.js';
-import { checkLogin, getQrCode, waitForLogin, logout, closeBrowser } from '../../publisher/index.js';
+import { checkLogin, waitForLogin, logout, closeBrowser } from '../../publisher/index.js';
+import { setHeadless, createPage, persistCookies } from '../../publisher/xhs-browser.js';
+import { XHS_URLS, SELECTORS } from '../../publisher/xhs-selectors.js';
 import { logger } from '../../utils/logger.js';
 
 export async function authCheckCommand(opts: { config?: string }) {
@@ -25,29 +24,47 @@ export async function authLoginCommand(opts: { config?: string }) {
   try {
     const config = await loadConfig(opts.config);
 
-    // Get QR code
-    logger.info('获取登录二维码...');
-    const qrBase64 = await getQrCode(config.xhs.cookiePath);
+    // Use headful mode so user can see and interact with the real XHS page
+    setHeadless(false);
 
-    // Save QR code to temp file for easy access
-    const qrPath = join(tmpdir(), 'md2red-qrcode.html');
-    const html = `<!DOCTYPE html><html><body style="display:flex;justify-content:center;align-items:center;height:100vh;background:#111"><div style="text-align:center"><h2 style="color:#fff;margin-bottom:20px">用小红书 App 扫码登录</h2><img src="${qrBase64}" style="width:300px;height:300px"/><p style="color:#888;margin-top:20px">扫码后此页面将自动关闭</p></div></body></html>`;
-    await writeFile(qrPath, html);
-    logger.info(`二维码已保存，用浏览器打开: ${qrPath}`);
+    logger.info('打开小红书登录页（浏览器窗口）...');
+    const page = await createPage(config.xhs.cookiePath);
+    await page.goto(XHS_URLS.explore, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(2000);
 
-    // Try to open in browser
-    const { exec } = await import('node:child_process');
-    exec(`open "${qrPath}" 2>/dev/null || xdg-open "${qrPath}" 2>/dev/null`);
-
-    // Wait for scan
-    const success = await waitForLogin(config.xhs.cookiePath, 240000);
-    if (!success) {
-      process.exit(1);
+    // Check if already logged in
+    if (await page.$(SELECTORS.loginSuccess.primary)) {
+      await persistCookies(config.xhs.cookiePath);
+      logger.success('已经登录，无需扫码');
+      await page.close();
+      await closeBrowser();
+      return;
     }
+
+    logger.info('请在弹出的浏览器窗口中用小红书 App 扫码登录');
+    logger.info('等待扫码（最多 4 分钟）...');
+
+    // Poll for login success
+    const deadline = Date.now() + 240000;
+    while (Date.now() < deadline) {
+      if (await page.$(SELECTORS.loginSuccess.primary)) {
+        await persistCookies(config.xhs.cookiePath);
+        logger.success('登录成功！Cookies 已保存');
+        await page.close();
+        await closeBrowser();
+        return;
+      }
+      await page.waitForTimeout(1000);
+    }
+
+    logger.error('扫码超时');
+    await page.close();
+    await closeBrowser();
+    process.exit(1);
   } catch (err) {
     logger.error(`登录失败: ${(err as Error).message}`);
-  } finally {
     await closeBrowser();
+    process.exit(1);
   }
 }
 

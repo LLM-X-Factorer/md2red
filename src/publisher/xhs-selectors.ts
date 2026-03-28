@@ -10,7 +10,7 @@ export interface SelectorDef {
 }
 
 export const SELECTORS: Record<string, SelectorDef> = {
-  // Login
+  // Login (on explore page)
   loginQrCode: {
     primary: '.login-container .qrcode-img',
     fallbacks: ['.qrcode-img', 'img[src*="qrcode"]'],
@@ -22,59 +22,66 @@ export const SELECTORS: Record<string, SelectorDef> = {
     description: 'Logged-in user indicator',
   },
 
-  // Publish page tabs
+  // Tab (text-based matching needed, not CSS selector alone)
   creatorTab: {
-    primary: 'div.creator-tab',
-    fallbacks: ['.publish-tab', '[role="tab"]'],
-    description: 'Creator center publish tab',
+    primary: 'span.title',
+    fallbacks: ['div.creator-tab', '[role="tab"]'],
+    description: 'Creator center tab items (match by text)',
   },
 
   // Image upload
   uploadInputFirst: {
     primary: '.upload-input',
-    fallbacks: ['input[type="file"][accept*="image"]', '.upload-wrapper input'],
-    description: 'First image upload input',
+    fallbacks: ['input[type="file"][accept*="image"]', 'input[type="file"]'],
+    description: 'Image upload file input (hidden, use locator)',
   },
   uploadInputSubsequent: {
     primary: 'input[type="file"]',
-    fallbacks: ['.upload-input', '.add-image input'],
+    fallbacks: ['.upload-input'],
     description: 'Subsequent image upload input',
   },
-  imagePreviewArea: {
-    primary: '.img-preview-area .pr',
-    fallbacks: ['.image-preview .item', '.upload-preview img'],
-    description: 'Image preview thumbnail',
+  imagePreviewItem: {
+    primary: '.img-item',
+    fallbacks: ['.image-item', '.upload-preview img', '.cover-image'],
+    description: 'Uploaded image preview item',
   },
 
   // Content input
   titleInput: {
-    primary: 'div.d-input input',
-    fallbacks: ['input[placeholder*="标题"]', '.title-container input', '.title-input input'],
+    primary: 'input.d-text[placeholder*="标题"]',
+    fallbacks: ['input[placeholder*="标题"]', 'input.d-text[type="text"]'],
     description: 'Note title input field',
   },
   bodyEditor: {
-    primary: 'div.ql-editor',
-    fallbacks: ['[role="textbox"]', '[contenteditable="true"]', '[data-placeholder*="正文"]'],
-    description: 'Note body rich text editor',
+    primary: 'div.tiptap.ProseMirror[role="textbox"]',
+    fallbacks: ['[role="textbox"][contenteditable="true"]', 'div.ProseMirror', 'div.ql-editor'],
+    description: 'Note body rich text editor (TipTap/ProseMirror)',
   },
 
   // Visibility
   visibilityDropdown: {
-    primary: 'div.permission-card-wrapper div.d-select-content',
-    fallbacks: ['.permission-select', '.visibility-select .d-select-content'],
+    primary: '.permission-card-select .d-select-content',
+    fallbacks: ['.permission-card-wrapper .d-select-content', 'div.permission-card-wrapper div.d-select-content'],
     description: 'Visibility dropdown trigger',
   },
   visibilityOptions: {
-    primary: 'div.d-options-wrapper div.d-grid-item div.custom-option',
-    fallbacks: ['.d-options-wrapper .option', '.permission-options .item'],
+    primary: '.d-options-wrapper .d-grid-item .custom-option',
+    fallbacks: ['.d-options-wrapper .custom-option', '.d-options .d-grid-item'],
     description: 'Visibility dropdown option items',
   },
 
-  // Publish button
+  // Publish button (match by text "发布")
   publishBtn: {
-    primary: '.publish-page-publish-btn button.bg-red',
-    fallbacks: ['button.publish-btn', '.publish-page-publish-btn button:not([disabled])'],
+    primary: 'button.d-button:has-text("发布")',
+    fallbacks: ['.publish-page-publish-btn button', 'button.bg-red'],
     description: 'Publish submit button',
+  },
+
+  // Topic/tag button
+  topicBtn: {
+    primary: 'button.topic-btn',
+    fallbacks: ['button:has-text("话题")'],
+    description: 'Topic/hashtag button in editor toolbar',
   },
 
   // Popover overlay
@@ -83,23 +90,9 @@ export const SELECTORS: Record<string, SelectorDef> = {
     fallbacks: ['.popover-mask', '.modal-overlay'],
     description: 'Blocking popover overlay',
   },
-
-  // Title length warning
-  titleLengthWarning: {
-    primary: 'div.title-container div.max_suffix',
-    fallbacks: ['.title-limit-warning'],
-    description: 'Title too long warning',
-  },
-
-  // Body length error
-  bodyLengthError: {
-    primary: 'div.edit-container div.length-error',
-    fallbacks: ['.content-length-error'],
-    description: 'Body content too long error',
-  },
 };
 
-// Legacy flat selector map for backward compatibility
+// Legacy flat selector map
 export const SEL = Object.fromEntries(
   Object.entries(SELECTORS).map(([key, def]) => [key, def.primary]),
 ) as Record<keyof typeof SELECTORS, string>;

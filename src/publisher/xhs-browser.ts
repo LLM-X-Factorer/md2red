@@ -5,12 +5,18 @@ import { logger } from '../utils/logger.js';
 
 let browser: Browser | null = null;
 let context: BrowserContext | null = null;
+let headlessMode = process.env.MD2RED_HEADLESS !== 'false';
+
+export function setHeadless(headless: boolean): void {
+  headlessMode = headless;
+}
 
 export async function launchBrowser(): Promise<Browser> {
   if (browser) return browser;
 
   browser = await chromium.launch({
-    headless: true,
+    headless: headlessMode,
+    channel: 'chrome',
     args: [
       '--disable-blink-features=AutomationControlled',
       '--no-sandbox',

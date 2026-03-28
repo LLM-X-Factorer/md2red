@@ -1,8 +1,8 @@
 import type { Page } from 'playwright';
-import { createPage, persistCookies } from './xhs-browser.js';
-import { XHS_URLS, SELECTORS, SEL } from './xhs-selectors.js';
-import { resilientFind, resilientClick, resilientExists } from './selector-resilience.js';
-import { humanDelay, humanType, humanClick } from './human-behavior.js';
+import { createPage, persistCookies, setHeadless } from './xhs-browser.js';
+import { XHS_URLS, SELECTORS } from './xhs-selectors.js';
+import { resilientFind, resilientClick } from './selector-resilience.js';
+import { humanDelay, humanType } from './human-behavior.js';
 import { logger } from '../utils/logger.js';
 
 export interface PublishOptions {
@@ -44,6 +44,8 @@ export async function publishNote(options: PublishOptions): Promise<PublishResul
 }
 
 async function attemptPublish(options: PublishOptions): Promise<PublishResult> {
+  // Use headful for publish (more reliable against anti-bot)
+  setHeadless(false);
   const page = await createPage(options.cookiePath);
 
   try {
@@ -51,10 +53,11 @@ async function attemptPublish(options: PublishOptions): Promise<PublishResult> {
     logger.info('打开创作者中心发布页...');
     await page.goto(XHS_URLS.publish, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
-    await humanDelay(page, 1500, 3000);
+    await humanDelay(page, 2000, 3000);
 
     // 2. Click "上传图文" tab
     await clickTab(page, '上传图文');
+    await humanDelay(page, 1000, 2000);
 
     // 3. Upload images
     logger.info(`上传 ${options.imagePaths.length} 张图片...`);
@@ -74,7 +77,7 @@ async function attemptPublish(options: PublishOptions): Promise<PublishResult> {
       await addTags(page, options.tags);
     }
 
-    // 7. Set visibility
+    // 7. Set visibility — need to scroll down to find it
     if (options.visibility !== '公开可见') {
       logger.info(`设置可见性: ${options.visibility}`);
       await setVisibility(page, options.visibility);
@@ -83,10 +86,10 @@ async function attemptPublish(options: PublishOptions): Promise<PublishResult> {
     // 8. Human-like delay before publish
     await humanDelay(page, options.publishDelay, options.publishDelay + 2000);
 
-    // 9. Click publish
+    // 9. Click publish button (by text)
     logger.info('点击发布...');
-    await resilientClick(page, 'publishBtn');
-    await humanDelay(page, 2000, 4000);
+    await clickPublishButton(page);
+    await humanDelay(page, 3000, 5000);
 
     await persistCookies(options.cookiePath);
     logger.success('发布成功');
@@ -100,48 +103,37 @@ async function attemptPublish(options: PublishOptions): Promise<PublishResult> {
 }
 
 async function clickTab(page: Page, tabText: string): Promise<void> {
-  // Remove blocking popovers
-  await page.evaluate(() => {
-    document.querySelectorAll('div.d-popover').forEach((el) => el.remove());
-  });
-
-  const tabs = await page.$$(SELECTORS.creatorTab.primary);
-  for (const tab of tabs) {
-    const text = await tab.textContent();
-    if (text?.includes(tabText)) {
-      await tab.click();
-      await humanDelay(page, 300, 800);
-      return;
+  await page.evaluate((text) => {
+    for (const el of document.querySelectorAll('span')) {
+      if (el.textContent?.trim() === text) {
+        (el as HTMLElement).click();
+        return;
+      }
     }
-  }
+  }, tabText);
+  await humanDelay(page, 500, 1000);
 }
 
 async function uploadImages(page: Page, imagePaths: string[]): Promise<void> {
   for (let i = 0; i < imagePaths.length; i++) {
-    const key = i === 0 ? 'uploadInputFirst' : 'uploadInputSubsequent';
-    const input = await resilientFind(page, key, 15000);
+    // Use locator to handle hidden file inputs
+    const inputs = page.locator('input[type="file"]');
+    const count = await inputs.count();
+    const input = inputs.nth(count - 1); // use the last available file input
     await input.setInputFiles(imagePaths[i]);
 
-    // Wait for preview
-    await page.waitForFunction(
-      (args) => {
-        const previews = document.querySelectorAll(args.sel);
-        return previews.length >= args.count;
-      },
-      { sel: SEL.imagePreviewArea, count: i + 1 },
-      { timeout: 60000 },
-    );
-
     logger.info(`  图片 ${i + 1}/${imagePaths.length} 上传完成`);
-    await humanDelay(page, 300, 800);
+    await humanDelay(page, 1500, 3000);
   }
+  // Wait for all previews to stabilize
+  await humanDelay(page, 2000, 4000);
 }
 
 async function fillTitle(page: Page, title: string): Promise<void> {
   const input = await resilientFind(page, 'titleInput');
   await input.click();
   await input.fill(title);
-  await humanDelay(page, 200, 500);
+  await humanDelay(page, 300, 600);
 }
 
 async function fillBody(page: Page, content: string): Promise<void> {
@@ -152,40 +144,65 @@ async function fillBody(page: Page, content: string): Promise<void> {
 }
 
 async function addTags(page: Page, tags: string[]): Promise<void> {
-  // Navigate to end of body
-  for (let i = 0; i < 5; i++) {
-    await page.keyboard.press('ArrowDown');
-  }
-  await page.keyboard.press('Enter');
-  await page.keyboard.press('Enter');
-
   for (const tag of tags.slice(0, 5)) {
-    await humanType(page, `#${tag}`);
+    // Click topic button to activate tag input
+    try {
+      const topicBtn = await page.$('button.topic-btn');
+      if (topicBtn) await topicBtn.click();
+    } catch { /* continue without topic button */ }
+
+    await humanDelay(page, 300, 600);
+    await humanType(page, tag);
     await humanDelay(page, 800, 1500);
 
-    const suggestion = await page.$('#creator-editor-topic-container .item');
+    // Click first suggestion if available
+    const suggestion = await page.$('.publish-topic-item, .topic-item, .search-result-item');
     if (suggestion) {
       await suggestion.click();
     } else {
       await page.keyboard.press('Enter');
     }
-    await humanDelay(page, 300, 800);
+    await humanDelay(page, 500, 1000);
   }
 }
 
 async function setVisibility(page: Page, visibility: string): Promise<void> {
-  await resilientClick(page, 'visibilityDropdown');
-  await humanDelay(page, 300, 600);
+  // Scroll down to find the visibility setting
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await humanDelay(page, 500, 1000);
 
-  const options = await page.$$(SELECTORS.visibilityOptions.primary);
+  // Click the visibility dropdown
+  await resilientClick(page, 'visibilityDropdown');
+  await humanDelay(page, 500, 800);
+
+  // Find and click the option by text
+  const options = await page.$$('.d-options-wrapper .d-grid-item');
   for (const option of options) {
     const text = await option.textContent();
     if (text?.includes(visibility)) {
       await option.click();
-      await humanDelay(page, 200, 500);
+      await humanDelay(page, 300, 500);
       return;
     }
   }
 
   throw new Error(`找不到可见性选项: ${visibility}`);
+}
+
+async function clickPublishButton(page: Page): Promise<void> {
+  // Find button by text content "发布" (not "暂存离开")
+  const clicked = await page.evaluate(() => {
+    const buttons = document.querySelectorAll('button');
+    for (const btn of buttons) {
+      if (btn.textContent?.trim() === '发布') {
+        (btn as HTMLElement).click();
+        return true;
+      }
+    }
+    return false;
+  });
+
+  if (!clicked) {
+    throw new Error('找不到发布按钮');
+  }
 }
