@@ -1,15 +1,18 @@
 import { route, json, readBody } from '../router.js';
 import { createTask, updateTask, completeTask, failTask, addListener } from '../task-manager.js';
-import { checkLogin, getQrCode, waitForLogin, closeBrowser, setHeadless } from '../../publisher/index.js';
-import { saveCookies, type CookieData } from '../../publisher/cookie.js';
+import { getQrCode, waitForLogin, closeBrowser, setHeadless } from '../../publisher/index.js';
+import { loadCookies, saveCookies, getCookieExpiry, type CookieData } from '../../publisher/cookie.js';
 import { loadConfig } from '../../config/index.js';
 
 route('GET', '/api/auth/status', async (_req, res) => {
   try {
     const config = await loadConfig();
-    const loggedIn = await checkLogin(config.xhs.cookiePath);
-    await closeBrowser();
-    json(res, { loggedIn });
+    // Check cookie file directly (no browser needed)
+    const expiry = await getCookieExpiry(config.xhs.cookiePath);
+    json(res, {
+      loggedIn: expiry.hasCookies && !expiry.isExpired,
+      hoursRemaining: expiry.hoursRemaining,
+    });
   } catch {
     json(res, { loggedIn: false });
   }
