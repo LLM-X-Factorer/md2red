@@ -56,6 +56,7 @@ async function launchChromeAndConnect(): Promise<Browser> {
   chromeProcess = spawn(chromePath, args, {
     stdio: 'ignore',
     detached: false,
+    env: { ...process.env, DISPLAY: process.env.DISPLAY || ':99' },
   });
 
   // Wait for Chrome to start accepting CDP connections
@@ -85,8 +86,10 @@ export async function launchBrowser(): Promise<Browser> {
   }
 
   // Fallback: Playwright direct launch
+  // Force headless if no display available
+  const hasDisplay = !!process.env.DISPLAY;
   browser = await chromium.launch({
-    headless: headlessMode,
+    headless: !hasDisplay || headlessMode,
     channel: 'chrome',
     args: [
       '--disable-blink-features=AutomationControlled',
