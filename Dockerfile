@@ -7,7 +7,7 @@ RUN echo "deb http://mirrors.cloud.tencent.com/debian/ bookworm main contrib non
     echo "deb http://mirrors.cloud.tencent.com/debian-security bookworm-security main contrib non-free non-free-firmware" >> /etc/apt/sources.list && \
     apt-get update && apt-get install -y --no-install-recommends \
     wget gnupg2 ca-certificates \
-    xvfb \
+    xvfb xauth \
     fonts-wqy-zenhei \
     libglib2.0-0 libnss3 libnspr4 libdbus-1-3 libatk1.0-0 \
     libatk-bridge2.0-0 libcups2 libdrm2 libxkbcommon0 libxcomposite1 \
