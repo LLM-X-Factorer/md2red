@@ -25,8 +25,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Build backend
         run: npm run build
+
+      - name: Build frontend
+        run: npm run build:web
 
       - name: Unit tests
         run: npm test
