@@ -77,6 +77,19 @@ docker compose up -d   # 启动 Web 控制台 :3001
 docker compose run --rm md2red generate /articles/article.md
 ```
 
+### Docker 开发注意事项（必读）
+
+以下是实际部署中踩过的坑，修改相关代码时务必注意：
+
+1. **Playwright 必须用系统 Chrome**：Docker 里没有 Playwright bundled Chromium。`renderer.ts` 和 `xhs-browser.ts` 都必须通过 `executablePath` 或 `channel: 'chrome'` 使用 `/usr/bin/google-chrome`
+2. **Xvfb 后台启动**：不要用 `xvfb-run`（会导致 node 进程启动失败），用 `Xvfb :99 &` + `export DISPLAY=:99`
+3. **apt 镜像源用 HTTP**：base 镜像没有 ca-certificates，必须用 `http://mirrors.cloud.tencent.com` 而非 https
+4. **MD2RED_DATA_DIR**：entrypoint 必须 export，否则上传和输出路径不持久化（默认到 /app 里，重启丢失）
+5. **Cookie 文件路径**：通过 symlink `~/.md2red → /data` 映射到 volume，确保 `loadCookies` 能找到
+6. **CDP 连接模式**：`xhs-browser.ts` 独立启动 Chrome 再通过 CDP 连接，减少自动化检测。注意 page 生命周期——不要在 auth 流程中途关闭 page
+7. **Docker build 缓存**：修改 src/ 后如果 build 没生效，`touch tsconfig.json` 让 Docker 检测到变化，避免 `--no-cache`（会重新下载 Chrome，非常慢）
+8. **任何 Docker 相关改动必须在容器内验证后再推代码**
+
 ## 代码风格
 
 - TypeScript strict mode
