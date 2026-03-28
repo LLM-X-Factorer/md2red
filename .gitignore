@@ -1,0 +1,5 @@
+node_modules/
+dist/
+md2red-output/
+.env
+*.tgz

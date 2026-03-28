@@ -1,0 +1,52 @@
+{
+  "name": "md2red",
+  "version": "0.1.0",
+  "description": "Markdown to Xiaohongshu (RED) image-text note converter & publisher",
+  "type": "module",
+  "bin": {
+    "md2red": "./dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli/index.js",
+    "lint": "eslint src/",
+    "format": "prettier --write 'src/**/*.ts'"
+  },
+  "keywords": [
+    "xiaohongshu",
+    "red",
+    "markdown",
+    "image",
+    "cli"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0",
+    "mdast-util-frontmatter": "^2.0.1",
+    "mdast-util-to-string": "^4.0.0",
+    "nanoid": "^5.1.2",
+    "ora": "^8.2.0",
+    "playwright": "^1.50.0",
+    "remark-frontmatter": "^5.0.0",
+    "remark-parse": "^11.0.0",
+    "remark-stringify": "^11.0.0",
+    "shiki": "^4.0.2",
+    "unified": "^11.0.5",
+    "yaml": "^2.7.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.19.0",
+    "@types/node": "^22.13.0",
+    "eslint": "^9.19.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.22.0"
+  }
+}
