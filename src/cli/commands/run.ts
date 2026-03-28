@@ -3,6 +3,7 @@ import { writeFile } from 'node:fs/promises';
 import { parseMarkdown } from '../../parser/index.js';
 import { generateImages, generateFromStrategy } from '../../generator/index.js';
 import { generateStrategy } from '../../strategy/index.js';
+import { hasApiKey as checkHasApiKey } from '../../strategy/providers/index.js';
 import { generatePreview, openInBrowser } from '../../preview/index.js';
 import { loadConfig } from '../../config/index.js';
 import { checkDuplicate, createRecord } from '../../tracker/index.js';
@@ -39,9 +40,7 @@ export async function runCommand(
     // 3. Strategy (if API key available)
     let paths: string[];
     let strategy;
-    const hasApiKey = !!(config.llm.apiKey || process.env.GEMINI_API_KEY);
-
-    if (hasApiKey) {
+    if (checkHasApiKey(config)) {
       logger.info('Step 2/4: 生成内容策略 (LLM)');
       strategy = await generateStrategy(doc, config);
       await writeFile(resolve(outputDir, 'strategy.json'), JSON.stringify(strategy, null, 2));

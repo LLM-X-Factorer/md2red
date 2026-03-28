@@ -8,6 +8,9 @@ import { publishCommand } from './commands/publish.js';
 import { authCheckCommand, authLoginCommand, authLogoutCommand } from './commands/auth.js';
 import { historyListCommand, historyClearCommand } from './commands/history.js';
 import { initCommand } from './commands/init.js';
+import { validateSelectorsCommand } from './commands/validate-selectors.js';
+import { healthCommand } from './commands/health.js';
+import { authServeCommand } from './commands/auth-serve.js';
 
 const program = new Command();
 
@@ -60,6 +63,7 @@ const auth = program.command('auth').description('Manage Xiaohongshu authenticat
 auth.command('check').description('Check if login session is valid').option('-c, --config <path>', 'Config file path').action(authCheckCommand);
 auth.command('login').description('Login via QR code scan').option('-c, --config <path>', 'Config file path').action(authLoginCommand);
 auth.command('logout').description('Clear saved cookies').option('-c, --config <path>', 'Config file path').action(authLogoutCommand);
+auth.command('serve').description('Start HTTP server for remote QR code login').option('-c, --config <path>', 'Config file path').option('-p, --port <number>', 'Port', '9876').action(authServeCommand);
 
 const history = program.command('history').description('View publish history');
 history.command('list').description('List all publish records').action(historyListCommand);
@@ -67,5 +71,19 @@ history.command('clear').description('Clear all history').action(historyClearCom
 history.action(historyListCommand); // default subcommand
 
 program.command('init').description('Generate config file in current directory').action(initCommand);
+
+program
+  .command('health')
+  .description('Check cookie health status')
+  .option('-c, --config <path>', 'Config file path')
+  .option('--notify', 'Send webhook notification on failure')
+  .option('--live', 'Do a live session check (slower, opens browser)')
+  .action(healthCommand);
+
+program
+  .command('validate')
+  .description('Validate XHS page selectors are still working')
+  .option('-c, --config <path>', 'Config file path')
+  .action(validateSelectorsCommand);
 
 program.parse();

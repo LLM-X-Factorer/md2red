@@ -1,7 +1,7 @@
 import type { ParsedDocument, CodeSnippet, ImageReference } from '../parser/types.js';
 import type { Md2RedConfig } from '../config/schema.js';
 import { buildStrategyPrompt } from './prompts.js';
-import { callGemini } from './gemini.js';
+import { createProvider, resolveCallConfig } from './providers/index.js';
 import { logger } from '../utils/logger.js';
 
 export interface ContentStrategy {
@@ -28,9 +28,11 @@ export async function generateStrategy(
   config: Md2RedConfig,
 ): Promise<ContentStrategy> {
   const prompt = buildStrategyPrompt(doc, config);
+  const provider = createProvider(config);
+  const callConfig = resolveCallConfig(config);
 
-  logger.info('调用 Gemini API 生成内容策略...');
-  const raw = await callGemini(prompt, config);
+  logger.info(`调用 ${provider.name} (${callConfig.model}) 生成内容策略...`);
+  const raw = await provider.call(prompt, callConfig);
 
   const jsonStr = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
   let parsed: ContentStrategy;
@@ -40,7 +42,6 @@ export async function generateStrategy(
     throw new Error(`LLM 返回的 JSON 解析失败:\n${raw.slice(0, 500)}`);
   }
 
-  // Attach code snippets from original blocks to card plan
   for (const card of parsed.cardPlan) {
     if (card.type === 'code' && card.sourceBlockIndex != null) {
       const block = doc.contentBlocks[card.sourceBlockIndex];

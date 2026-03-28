@@ -1,6 +1,7 @@
 import type { Page } from 'playwright';
 import { createPage, persistCookies, closeBrowser } from './xhs-browser.js';
-import { XHS_URLS, SEL } from './xhs-selectors.js';
+import { XHS_URLS, SELECTORS } from './xhs-selectors.js';
+import { resilientFind, resilientExists } from './selector-resilience.js';
 import { logger } from '../utils/logger.js';
 
 export interface AuthStatus {
@@ -13,7 +14,7 @@ export async function checkLogin(cookiePath: string): Promise<boolean> {
   try {
     await page.goto(XHS_URLS.explore, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(2000);
-    const loggedIn = (await page.$(SEL.loginSuccess)) !== null;
+    const loggedIn = (await page.$(SELECTORS.loginSuccess.primary)) !== null;
     if (loggedIn) {
       await persistCookies(cookiePath);
     }
@@ -30,13 +31,13 @@ export async function getQrCode(cookiePath: string): Promise<string> {
     await page.waitForTimeout(2000);
 
     // Check if already logged in
-    if (await page.$(SEL.loginSuccess)) {
+    if (await page.$(SELECTORS.loginSuccess.primary)) {
       await persistCookies(cookiePath);
       throw new Error('已经登录，无需扫码');
     }
 
     // Extract QR code base64
-    const qrImg = await page.waitForSelector(SEL.loginQrCode, { timeout: 10000 });
+    const qrImg = await resilientFind(page, 'loginQrCode', 10000);
     const src = await qrImg.getAttribute('src');
     if (!src) throw new Error('无法获取二维码图片');
 
@@ -58,7 +59,7 @@ export async function waitForLogin(
     const deadline = Date.now() + timeoutMs;
 
     while (Date.now() < deadline) {
-      if (await page.$(SEL.loginSuccess)) {
+      if (await page.$(SELECTORS.loginSuccess.primary)) {
         await persistCookies(cookiePath);
         logger.success('登录成功');
         return true;

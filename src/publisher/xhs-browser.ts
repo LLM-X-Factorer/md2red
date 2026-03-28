@@ -1,5 +1,6 @@
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
 import { loadCookies, saveCookies, type CookieData } from './cookie.js';
+import { randomUserAgent, applyStealthScripts } from './stealth.js';
 import { logger } from '../utils/logger.js';
 
 let browser: Browser | null = null;
@@ -14,6 +15,7 @@ export async function launchBrowser(): Promise<Browser> {
       '--disable-blink-features=AutomationControlled',
       '--no-sandbox',
       '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
     ],
   });
 
@@ -26,18 +28,13 @@ export async function getContext(cookiePath: string): Promise<BrowserContext> {
   const b = await launchBrowser();
   context = await b.newContext({
     viewport: { width: 1920, height: 1080 },
-    userAgent:
-      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    userAgent: randomUserAgent(),
     locale: 'zh-CN',
+    timezoneId: 'Asia/Shanghai',
   });
 
-  // Stealth: hide webdriver flag
-  await context.addInitScript(() => {
-    Object.defineProperty(navigator, 'webdriver', { get: () => false });
-    Object.defineProperty(window, 'chrome', { get: () => ({ runtime: {} }) });
-  });
+  await applyStealthScripts(context);
 
-  // Load saved cookies
   const cookies = await loadCookies(cookiePath);
   if (cookies) {
     await context.addCookies(cookies);

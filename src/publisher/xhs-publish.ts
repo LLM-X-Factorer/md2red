@@ -1,6 +1,8 @@
 import type { Page } from 'playwright';
 import { createPage, persistCookies } from './xhs-browser.js';
-import { XHS_URLS, SEL } from './xhs-selectors.js';
+import { XHS_URLS, SELECTORS, SEL } from './xhs-selectors.js';
+import { resilientFind, resilientClick, resilientExists } from './selector-resilience.js';
+import { humanDelay, humanType, humanClick } from './human-behavior.js';
 import { logger } from '../utils/logger.js';
 
 export interface PublishOptions {
@@ -19,7 +21,29 @@ export interface PublishResult {
   error?: string;
 }
 
+const MAX_RETRIES = 3;
+
 export async function publishNote(options: PublishOptions): Promise<PublishResult> {
+  let lastError: string = '';
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 1) {
+      const backoff = Math.pow(2, attempt - 1) * 2000;
+      logger.info(`重试 ${attempt}/${MAX_RETRIES}，等待 ${backoff / 1000}s...`);
+      await new Promise((r) => setTimeout(r, backoff));
+    }
+
+    const result = await attemptPublish(options);
+    if (result.success) return result;
+
+    lastError = result.error || 'Unknown error';
+    logger.warn(`发布尝试 ${attempt} 失败: ${lastError}`);
+  }
+
+  return { success: false, error: `${MAX_RETRIES} 次重试均失败: ${lastError}` };
+}
+
+async function attemptPublish(options: PublishOptions): Promise<PublishResult> {
   const page = await createPage(options.cookiePath);
 
   try {
@@ -27,10 +51,10 @@ export async function publishNote(options: PublishOptions): Promise<PublishResul
     logger.info('打开创作者中心发布页...');
     await page.goto(XHS_URLS.publish, { waitUntil: 'domcontentloaded' });
     await page.waitForLoadState('networkidle');
-    await page.waitForTimeout(2000);
+    await humanDelay(page, 1500, 3000);
 
     // 2. Click "上传图文" tab
-    await clickTab(page, SEL.tabTextImage);
+    await clickTab(page, '上传图文');
 
     // 3. Upload images
     logger.info(`上传 ${options.imagePaths.length} 张图片...`);
@@ -57,21 +81,18 @@ export async function publishNote(options: PublishOptions): Promise<PublishResul
     }
 
     // 8. Human-like delay before publish
-    await page.waitForTimeout(options.publishDelay);
+    await humanDelay(page, options.publishDelay, options.publishDelay + 2000);
 
     // 9. Click publish
     logger.info('点击发布...');
-    await page.click(SEL.publishBtn);
-    await page.waitForTimeout(3000);
+    await resilientClick(page, 'publishBtn');
+    await humanDelay(page, 2000, 4000);
 
-    // Save cookies after successful operation
     await persistCookies(options.cookiePath);
-
     logger.success('发布成功');
     return { success: true };
   } catch (err) {
     const message = (err as Error).message;
-    logger.error(`发布失败: ${message}`);
     return { success: false, error: message };
   } finally {
     await page.close();
@@ -79,32 +100,29 @@ export async function publishNote(options: PublishOptions): Promise<PublishResul
 }
 
 async function clickTab(page: Page, tabText: string): Promise<void> {
-  // Remove any popovers that might block clicks
-  await page.evaluate((sel) => {
-    document.querySelectorAll(sel).forEach((el) => el.remove());
-  }, SEL.popover);
+  // Remove blocking popovers
+  await page.evaluate(() => {
+    document.querySelectorAll('div.d-popover').forEach((el) => el.remove());
+  });
 
-  const tabs = await page.$$(SEL.creatorTab);
+  const tabs = await page.$$(SELECTORS.creatorTab.primary);
   for (const tab of tabs) {
     const text = await tab.textContent();
     if (text?.includes(tabText)) {
       await tab.click();
-      await page.waitForTimeout(500);
+      await humanDelay(page, 300, 800);
       return;
     }
   }
-  // Tab might already be selected, continue
 }
 
 async function uploadImages(page: Page, imagePaths: string[]): Promise<void> {
   for (let i = 0; i < imagePaths.length; i++) {
-    const selector = i === 0 ? SEL.uploadInputFirst : SEL.uploadInputSubsequent;
-
-    // Wait for the upload input to be available
-    const input = await page.waitForSelector(selector, { timeout: 15000 });
+    const key = i === 0 ? 'uploadInputFirst' : 'uploadInputSubsequent';
+    const input = await resilientFind(page, key, 15000);
     await input.setInputFiles(imagePaths[i]);
 
-    // Wait for preview to show the uploaded image
+    // Wait for preview
     await page.waitForFunction(
       (args) => {
         const previews = document.querySelectorAll(args.sel);
@@ -115,45 +133,26 @@ async function uploadImages(page: Page, imagePaths: string[]): Promise<void> {
     );
 
     logger.info(`  图片 ${i + 1}/${imagePaths.length} 上传完成`);
-    await page.waitForTimeout(500);
+    await humanDelay(page, 300, 800);
   }
 }
 
 async function fillTitle(page: Page, title: string): Promise<void> {
-  const input = await page.waitForSelector(SEL.titleInput, { timeout: 10000 });
+  const input = await resilientFind(page, 'titleInput');
   await input.click();
   await input.fill(title);
-  await page.waitForTimeout(300);
+  await humanDelay(page, 200, 500);
 }
 
 async function fillBody(page: Page, content: string): Promise<void> {
-  // Try both editor selectors (race)
-  let editor = await page.$(SEL.bodyEditor);
-  if (!editor) {
-    const alt = await page.$(SEL.bodyEditorAlt);
-    if (alt) {
-      // Find the contenteditable parent
-      editor = await alt.evaluateHandle((el) => {
-        let node = el.parentElement;
-        while (node && node.getAttribute('role') !== 'textbox') {
-          node = node.parentElement;
-        }
-        return node || el;
-      });
-      editor = editor.asElement();
-    }
-  }
-
-  if (!editor) throw new Error('找不到正文编辑器');
-
+  const editor = await resilientFind(page, 'bodyEditor');
   await editor.click();
-  // Type character by character to simulate human input
-  await page.keyboard.type(content, { delay: 20 });
-  await page.waitForTimeout(500);
+  await humanType(page, content);
+  await humanDelay(page, 300, 800);
 }
 
 async function addTags(page: Page, tags: string[]): Promise<void> {
-  // Navigate to end of body content first
+  // Navigate to end of body
   for (let i = 0; i < 5; i++) {
     await page.keyboard.press('ArrowDown');
   }
@@ -161,34 +160,29 @@ async function addTags(page: Page, tags: string[]): Promise<void> {
   await page.keyboard.press('Enter');
 
   for (const tag of tags.slice(0, 5)) {
-    // Type # to trigger tag input
-    await page.keyboard.type(`#${tag}`, { delay: 50 });
-    await page.waitForTimeout(1000);
+    await humanType(page, `#${tag}`);
+    await humanDelay(page, 800, 1500);
 
-    // Click the first suggestion
     const suggestion = await page.$('#creator-editor-topic-container .item');
     if (suggestion) {
       await suggestion.click();
     } else {
       await page.keyboard.press('Enter');
     }
-    await page.waitForTimeout(500);
+    await humanDelay(page, 300, 800);
   }
 }
 
 async function setVisibility(page: Page, visibility: string): Promise<void> {
-  // Open dropdown
-  const dropdown = await page.waitForSelector(SEL.visibilityDropdown, { timeout: 10000 });
-  await dropdown.click();
-  await page.waitForTimeout(500);
+  await resilientClick(page, 'visibilityDropdown');
+  await humanDelay(page, 300, 600);
 
-  // Select option
-  const options = await page.$$(SEL.visibilityOptions);
+  const options = await page.$$(SELECTORS.visibilityOptions.primary);
   for (const option of options) {
     const text = await option.textContent();
     if (text?.includes(visibility)) {
       await option.click();
-      await page.waitForTimeout(300);
+      await humanDelay(page, 200, 500);
       return;
     }
   }

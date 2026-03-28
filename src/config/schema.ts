@@ -1,15 +1,30 @@
 import { z } from 'zod';
 
 const llmSchema = z.object({
-  provider: z.enum(['gemini']).default('gemini'),
-  model: z.string().default('gemini-2.5-flash'),
+  provider: z.enum(['gemini', 'openai', 'anthropic']).default('gemini'),
+  model: z.string().optional(),
   apiKey: z.string().default(''),
+  temperature: z.number().min(0).max(2).default(0.7),
+  maxTokens: z.number().default(4096),
+});
+
+const notificationSchema = z.object({
+  enabled: z.boolean().default(false),
+  webhookUrl: z.string().optional(),
+  webhookType: z.enum(['generic', 'wechat-work', 'telegram']).default('generic'),
+});
+
+const healthCheckSchema = z.object({
+  enabled: z.boolean().default(false),
+  intervalHours: z.number().default(12),
+  notification: notificationSchema.optional().default(notificationSchema.parse({})),
 });
 
 const xhsSchema = z.object({
   cookiePath: z.string().default('~/.md2red/cookies.json'),
   visibility: z.enum(['公开可见', '仅自己可见', '仅互关好友可见']).default('仅自己可见'),
   publishDelay: z.number().default(3000),
+  healthCheck: healthCheckSchema.optional().default(healthCheckSchema.parse({})),
 });
 
 const fontSchema = z.object({
