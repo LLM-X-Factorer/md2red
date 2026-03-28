@@ -20,6 +20,20 @@ Transform your technical articles into beautifully formatted carousel posts (108
 - **XHS Publishing** — Headful Chrome automation for creator center, private visibility by default, draft mode support
 - **Dark & Light Themes** — Two built-in color schemes with typed Theme interface
 - **State Tracking** — Publish history with duplicate detection (SHA256 hash)
+- **Web Console** — Vite + React + Tailwind browser dashboard for non-technical users
+- **Docker Deployment** — One-command containerized deployment with Chrome + Xvfb
+
+## Two Ways to Use
+
+**CLI Mode** — for developers:
+```bash
+md2red generate article.md && md2red preview md2red-output/article/ && md2red publish md2red-output/article/
+```
+
+**Web Console Mode** — deploy to server, operate via browser:
+```bash
+docker compose up -d    # visit http://server-ip:3001
+```
 
 ## Installation
 

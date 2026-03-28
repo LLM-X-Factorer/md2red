@@ -19,6 +19,21 @@
 - **Cookie 健康监控** — 主动检测过期、Webhook 告警（企业微信/Telegram）、远程扫码服务
 - **小红书发布** — 使用系统 Chrome 自动化发布，默认"仅自己可见"，支持草稿模式
 - **状态追踪** — SHA256 哈希防重复发布，发布历史记录
+- **Web 控制台** — Vite + React + Tailwind 构建的浏览器控制台，非技术用户也能操作
+- **Docker 部署** — 一键容器化部署到云服务器，内置 Chrome + Xvfb
+
+## 两种使用方式
+
+**CLI 模式** — 开发者在本地终端操作：
+```bash
+md2red generate article.md && md2red preview md2red-output/article/ && md2red publish md2red-output/article/
+```
+
+**Web 控制台模式** — 部署到服务器，浏览器中操作：
+```bash
+docker compose up -d
+# 访问 http://服务器IP:3001
+```
 
 ## 安装
 
@@ -281,19 +296,57 @@ Markdown 文件
 [追踪层]        ~/.md2red/history.json（去重、指标、状态）
 ```
 
-## 服务器部署
+## Web 控制台
 
-md2red 可以部署在云服务器上（如腾讯云 Lighthouse）：
+md2red 提供了浏览器控制台，部署到服务器后，非技术用户也能通过网页完成所有操作。
 
+**功能页面：**
+- **首页** — 账号状态、最近记录、快捷入口
+- **上传生成** — 拖拽上传 Markdown → 解析 → 选择主题/LLM → 生成图片（实时进度）
+- **预览编辑** — 卡片轮播、拖拽排序、编辑标题/摘要/标签
+- **发布** — 一键发布或保存草稿（实时进度）
+- **账号登录** — 显示 QR 码，手机扫码登录
+- **发布历史** — 所有记录的状态表格
+- **设置** — LLM 提供商、主题、内容风格等配置
+
+**本地开发：**
 ```bash
-# 远程扫码登录（任意浏览器访问）
-md2red auth serve --port 9876
+npm run build:all          # 构建后端 + 前端
+npm run start:web          # 启动 http://localhost:3001
 
-# 定时健康检查（cron）
-0 */12 * * * cd /path/to/project && npx md2red health --notify
+# 或分别开发（热更新）
+npm run dev:web            # 前端 Vite dev server (5173)
+node dist/web/server.js    # 后端 API (3001)
 ```
 
-环境要求：Node.js 18+，Google Chrome 或 Chromium。
+## Docker 部署
+
+推荐使用 Docker 部署到云服务器（如腾讯云 Lighthouse 2C4G）：
+
+```bash
+# 1. 克隆项目
+git clone https://github.com/LLM-X-Factorer/md2red.git /opt/md2red
+cd /opt/md2red
+
+# 2. 配置环境变量（可选，用于 LLM 策略）
+echo "GEMINI_API_KEY=your-key" > .env
+
+# 3. 构建并启动
+docker compose up -d
+
+# 4. 访问 Web 控制台
+# 浏览器打开 http://服务器IP:3001
+```
+
+Docker 镜像内置 Chrome + Xvfb + 中文字体，使用腾讯云镜像源加速构建。
+
+**容器内数据持久化：**
+- Cookie 和历史记录 → `md2red-data` volume（`/data`）
+- Markdown 文件 → `./articles` 映射到 `/articles`
+- 生成输出 → `./output` 映射到 `/output`
+
+**CI/CD 自动部署：**
+commit message 包含 `[deploy]` 时，GitHub Actions 自动 SSH 到服务器拉取最新代码并重建容器。需在 GitHub Settings → Secrets 中配置 `DEPLOY_HOST`、`DEPLOY_USER`、`DEPLOY_KEY`。
 
 ## 注意事项
 
@@ -305,13 +358,23 @@ md2red auth serve --port 9876
 ## 技术栈
 
 - **TypeScript** + Node.js (ESM)
-- **React** (SSR 图片卡片渲染)
+- **React** (SSR 图片渲染 + Web 控制台前端)
+- **Vite** + **Tailwind CSS** (Web 控制台构建)
 - **Playwright** (截图 + 小红书自动化)
 - **unified/remark** (Markdown 解析 + rehype HTML 渲染)
 - **Shiki** (语法高亮)
 - **Gemini / OpenAI / Anthropic** (内容策略)
 - **Zod** (配置验证)
 - **Commander.js** (CLI)
+- **Docker** (容器化部署)
+
+## 测试
+
+```bash
+npm test              # 22 单元测试
+npm run test:e2e      # 44 E2E 测试（CLI + Web 控制台）
+npm run test:all      # 全部 66 个测试
+```
 
 ## 许可证
 
