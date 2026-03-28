@@ -2,18 +2,29 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
 
+export interface NoteMetrics {
+  views: number;
+  likes: number;
+  comments: number;
+  collects: number;
+  shares: number;
+}
+
 export interface PublishRecord {
   id: string;
   sourceFile: string;
   sourceHash: string;
   title: string;
   noteId?: string;
+  noteUrl?: string;
   status: 'generated' | 'previewed' | 'published' | 'failed';
   imageCount: number;
   outputDir: string;
   createdAt: string;
   publishedAt?: string;
   errorMessage?: string;
+  metrics?: NoteMetrics;
+  metricsUpdatedAt?: string;
 }
 
 const HISTORY_PATH = join(homedir(), '.md2red', 'history.json');

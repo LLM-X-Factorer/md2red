@@ -1,6 +1,7 @@
 import type { ParsedDocument, CodeSnippet, ImageReference } from '../parser/types.js';
 import type { Md2RedConfig } from '../config/schema.js';
 import { buildStrategyPrompt } from './prompts.js';
+import { buildFeedbackContext } from './feedback.js';
 import { createProvider, resolveCallConfig } from './providers/index.js';
 import { logger } from '../utils/logger.js';
 
@@ -27,7 +28,8 @@ export async function generateStrategy(
   doc: ParsedDocument,
   config: Md2RedConfig,
 ): Promise<ContentStrategy> {
-  const prompt = buildStrategyPrompt(doc, config);
+  const feedback = await buildFeedbackContext();
+  const prompt = buildStrategyPrompt(doc, config, feedback);
   const provider = createProvider(config);
   const callConfig = resolveCallConfig(config);
 

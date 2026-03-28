@@ -8,7 +8,7 @@ import {
   type PublishRecord,
 } from './store.js';
 
-export type { PublishRecord } from './store.js';
+export type { PublishRecord, NoteMetrics } from './store.js';
 export { loadHistory, clearHistory } from './store.js';
 
 export async function checkDuplicate(
@@ -61,5 +61,15 @@ export async function markFailed(id: string, error: string): Promise<void> {
   await updateRecord(id, {
     status: 'failed',
     errorMessage: error,
+  });
+}
+
+export async function updateMetrics(
+  id: string,
+  metrics: import('./store.js').NoteMetrics,
+): Promise<void> {
+  await updateRecord(id, {
+    metrics,
+    metricsUpdatedAt: new Date().toISOString(),
   });
 }

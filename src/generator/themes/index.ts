@@ -1,7 +1,12 @@
 import { darkTheme } from './dark.js';
 import { lightTheme } from './light.js';
 
-export type Theme = Record<string, string>;
+export interface Theme {
+  backgroundColor: string;
+  textColor: string;
+  titleColor: string;
+  accentColor: string;
+}
 
 const themes: Record<string, Theme> = { dark: darkTheme, light: lightTheme };
 

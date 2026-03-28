@@ -11,6 +11,8 @@ import { initCommand } from './commands/init.js';
 import { validateSelectorsCommand } from './commands/validate-selectors.js';
 import { healthCommand } from './commands/health.js';
 import { authServeCommand } from './commands/auth-serve.js';
+import { statsCommand } from './commands/stats.js';
+import { scrapeCommand } from './commands/scrape.js';
 
 const program = new Command();
 
@@ -71,6 +73,17 @@ history.command('clear').description('Clear all history').action(historyClearCom
 history.action(historyListCommand); // default subcommand
 
 program.command('init').description('Generate config file in current directory').action(initCommand);
+
+program
+  .command('stats')
+  .description('View published notes performance metrics')
+  .action(statsCommand);
+
+program
+  .command('scrape [id]')
+  .description('Scrape metrics for published notes')
+  .option('-c, --config <path>', 'Config file path')
+  .action(scrapeCommand);
 
 program
   .command('health')

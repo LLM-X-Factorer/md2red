@@ -1,7 +1,7 @@
 import type { ParsedDocument } from '../parser/types.js';
 import type { Md2RedConfig } from '../config/schema.js';
 
-export function buildStrategyPrompt(doc: ParsedDocument, config: Md2RedConfig): string {
+export function buildStrategyPrompt(doc: ParsedDocument, config: Md2RedConfig, feedbackContext?: string | null): string {
   const blockSummary = doc.contentBlocks
     .map((b, i) => `  ${i + 1}. [${b.type}] ${b.heading || '(无标题)'} (${b.textContent.length}字)`)
     .join('\n');
@@ -63,5 +63,5 @@ ${config.content.style === 'technical' ? '技术干货向，专业但易懂' : c
    - 包含代码的块用 type="code"，layoutHint="code-focused"
    - 代码块的 sourceBlockIndex 指向原始 contentBlocks 的索引
    - 内容卡片的 bodyText 不要超过 200 字
-5. 只输出 JSON，不要任何 markdown 包装或额外说明`;
+5. 只输出 JSON，不要任何 markdown 包装或额外说明${feedbackContext ? '\n\n' + feedbackContext : ''}`;
 }

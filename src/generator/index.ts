@@ -1,10 +1,15 @@
+import React from 'react';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { ParsedDocument } from '../parser/types.js';
 import type { ContentStrategy, CardPlan } from '../strategy/index.js';
 import { getTheme } from './themes/index.js';
-import { renderCard, closeBrowser } from './renderer.js';
+import { renderReactCard, closeBrowser } from './render-react.js';
 import { highlightCode } from './highlighter.js';
+import { CoverCard } from './components/CoverCard.js';
+import { ContentCard } from './components/ContentCard.js';
+import { CodeCard } from './components/CodeCard.js';
+import { SummaryCard } from './components/SummaryCard.js';
 import { logger } from '../utils/logger.js';
 
 export interface GenerateOptions {
@@ -13,7 +18,6 @@ export interface GenerateOptions {
   maxCards?: number;
 }
 
-// Strategy-driven generation (Phase 2 - with LLM plan)
 export async function generateFromStrategy(
   doc: ParsedDocument,
   strategy: ContentStrategy,
@@ -33,43 +37,38 @@ export async function generateFromStrategy(
     const pageNum = `${card.index + 1} / ${total}`;
 
     if (card.type === 'cover') {
-      const tagHtml = strategy.tags
-        .slice(0, 4)
-        .map((t) => `<span class="tag">#${t}</span>`)
-        .join('');
-      await renderCard('cover', { title: card.title, subtitle: card.bodyText, tags: tagHtml }, theme, outPath);
+      await renderReactCard(
+        React.createElement(CoverCard, {
+          theme, title: card.title, subtitle: card.bodyText,
+          tags: strategy.tags.slice(0, 4),
+        }),
+        outPath,
+      );
     } else if (card.type === 'code' && card.codeSnippet) {
       const code = truncateCode(card.codeSnippet.code, 25);
       const codeHtml = await highlightCode(code, card.codeSnippet.language, isDark);
-      await renderCard(
-        'code',
-        {
-          heading: card.title,
+      await renderReactCard(
+        React.createElement(CodeCard, {
+          theme, heading: card.title,
           description: card.bodyText.slice(0, 150),
-          language: card.codeSnippet.language,
-          codeHtml,
-          pageNum,
-        },
-        theme,
+          language: card.codeSnippet.language, codeHtml, pageNum,
+        }),
         outPath,
       );
     } else if (card.type === 'summary') {
-      const pointsHtml = card.bodyText
-        .split('\n')
-        .filter((l) => l.trim())
-        .map((l) => `<div class="point">${escapeHtml(l)}</div>`)
-        .join('\n');
-      await renderCard(
-        'summary',
-        { heading: card.title, pointsHtml, cta: '关注我获取更多技术干货 👋' },
-        theme,
+      const points = card.bodyText.split('\n').filter((l) => l.trim());
+      await renderReactCard(
+        React.createElement(SummaryCard, {
+          theme, heading: card.title, points, cta: '关注我获取更多技术干货 👋',
+        }),
         outPath,
       );
     } else {
-      await renderCard(
-        'content',
-        { heading: card.title, bodyHtml: textToHtml(card.bodyText), pageNum },
-        theme,
+      await renderReactCard(
+        React.createElement(ContentCard, {
+          theme, heading: card.title,
+          bodyHtml: textToHtml(card.bodyText), pageNum,
+        }),
         outPath,
       );
     }
@@ -82,7 +81,6 @@ export async function generateFromStrategy(
   return outputPaths;
 }
 
-// Direct generation from parsed doc (Phase 1 fallback - no LLM needed)
 export async function generateImages(
   doc: ParsedDocument,
   options: GenerateOptions,
@@ -94,16 +92,13 @@ export async function generateImages(
   const isDark = themeName !== 'light';
   const outputPaths: string[] = [];
 
-  // 1. Cover card
+  // 1. Cover
   const coverPath = join(outputDir, '01-cover.png');
-  await renderCard(
-    'cover',
-    {
-      title: doc.title,
+  await renderReactCard(
+    React.createElement(CoverCard, {
+      theme, title: doc.title,
       subtitle: `共 ${doc.metadata.wordCount} 字 · ${doc.contentBlocks.length} 个章节`,
-      tags: '',
-    },
-    theme,
+    }),
     coverPath,
   );
   outputPaths.push(coverPath);
@@ -121,23 +116,21 @@ export async function generateImages(
       const code = truncateCode(snippet.code, 25);
       const codeHtml = await highlightCode(code, snippet.language, isDark);
       const desc = stripHeading(block.textContent, block.heading)
-        .split('\n')
-        .filter((l) => l.trim())
-        .slice(0, 3)
-        .join(' ')
-        .slice(0, 120);
-      await renderCard(
-        'code',
-        { heading: block.heading || '代码示例', description: desc, language: snippet.language, codeHtml, pageNum },
-        theme,
+        .split('\n').filter((l) => l.trim()).slice(0, 3).join(' ').slice(0, 120);
+      await renderReactCard(
+        React.createElement(CodeCard, {
+          theme, heading: block.heading || '代码示例',
+          description: desc, language: snippet.language, codeHtml, pageNum,
+        }),
         outPath,
       );
     } else {
       const bodyText = stripHeading(block.textContent, block.heading);
-      await renderCard(
-        'content',
-        { heading: block.heading || '', bodyHtml: textToHtml(bodyText), pageNum },
-        theme,
+      await renderReactCard(
+        React.createElement(ContentCard, {
+          theme, heading: block.heading || '',
+          bodyHtml: textToHtml(bodyText), pageNum,
+        }),
         outPath,
       );
     }
@@ -145,18 +138,13 @@ export async function generateImages(
     logger.success(`卡片 ${i + 2}: ${outPath}`);
   }
 
-  // 3. Summary card
+  // 3. Summary
   const summaryPath = join(outputDir, `${String(blocks.length + 2).padStart(2, '0')}-summary.png`);
-  const points = doc.contentBlocks
-    .filter((b) => b.heading)
-    .slice(0, 5)
-    .map((b) => `<div class="point">${escapeHtml(b.heading!)}</div>`)
-    .join('\n');
-
-  await renderCard(
-    'summary',
-    { heading: '总结', pointsHtml: points, cta: '关注我获取更多技术干货 👋' },
-    theme,
+  const points = doc.contentBlocks.filter((b) => b.heading).slice(0, 5).map((b) => b.heading!);
+  await renderReactCard(
+    React.createElement(SummaryCard, {
+      theme, heading: '总结', points, cta: '关注我获取更多技术干货 👋',
+    }),
     summaryPath,
   );
   outputPaths.push(summaryPath);
@@ -167,11 +155,8 @@ export async function generateImages(
 }
 
 function textToHtml(text: string): string {
-  return text
-    .split('\n')
-    .filter((l) => l.trim())
-    .map((l) => `<p>${escapeHtml(l)}</p>`)
-    .join('\n');
+  return text.split('\n').filter((l) => l.trim())
+    .map((l) => `<p style="margin-bottom:20px;text-align:justify">${escapeHtml(l)}</p>`).join('\n');
 }
 
 function escapeHtml(s: string): string {
