@@ -46,7 +46,7 @@ npm run build
 
 ### 环境要求
 
-- **Node.js 18+**
+- **Node.js 20+**
 - **Google Chrome** — md2red 使用系统 Chrome 进行小红书自动化操作
 - **小红书账号** — 需要在手机小红书 App 中扫码登录
 

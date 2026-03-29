@@ -46,7 +46,7 @@ npm run build
 
 ### Prerequisites
 
-- **Node.js 18+**
+- **Node.js 20+**
 - **Google Chrome** — md2red uses your system Chrome for XHS automation (not Chromium)
 - **Xiaohongshu account** — you need the XHS mobile app to scan QR code for login
 
@@ -308,7 +308,7 @@ md2red auth serve --port 9876
 0 */12 * * * cd /path/to/project && npx md2red health --notify
 ```
 
-Requirements: Node.js 18+, Google Chrome or Chromium.
+Requirements: Node.js 20+, Google Chrome or Chromium.
 
 ## Important Notes
 
