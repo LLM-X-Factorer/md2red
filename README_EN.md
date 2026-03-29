@@ -17,7 +17,8 @@ Transform your technical articles into beautifully formatted carousel posts (108
 - **Content Quality Loop** — Scrape published note metrics, feed top-performing patterns back into LLM prompts
 - **Anti-Automation** — Browser stealth, human behavior simulation, selector resilience with fallbacks, exponential backoff retry
 - **Cookie Health Monitoring** — Proactive expiry detection, webhook alerts (WeChat Work/Telegram), remote QR login server
-- **XHS Publishing** — Headful Chrome automation for creator center, private visibility by default, draft mode support
+- **XHS Publishing** — Auto-publish (private only) or export images + copytext zip for manual posting
+- **Export Package** — Download zip with all card images + copytext file, bypass automation detection
 - **Dark & Light Themes** — Two built-in color schemes with typed Theme interface
 - **State Tracking** — Publish history with duplicate detection (SHA256 hash)
 - **Web Console** — Vite + React + Tailwind browser dashboard for non-technical users
