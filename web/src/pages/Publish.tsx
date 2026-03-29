@@ -52,16 +52,27 @@ export default function Publish() {
           <p className="text-gray-400 text-sm">正在启动发布...</p>
         </div>
       ) : (
-        <div className="rounded-xl bg-gray-900 border border-gray-800 p-8 text-center space-y-4">
-          <p className="text-gray-400">笔记将以「仅自己可见」模式发布到小红书</p>
-          <p className="text-gray-500 text-xs">发布后可在小红书创作者中心「笔记管理」中查看和编辑可见性</p>
-          <button
-            onClick={handlePublish}
-            disabled={publishing}
-            className="px-8 py-3 bg-red-500 hover:bg-red-400 disabled:opacity-50 rounded-lg text-white font-medium transition-colors"
-          >
-            确认发布
-          </button>
+        <div className="rounded-xl bg-gray-900 border border-gray-800 p-8 text-center space-y-6">
+          <div className="space-y-2">
+            <p className="text-gray-400">笔记将以「仅自己可见」模式发布到小红书</p>
+            <p className="text-gray-500 text-xs">发布后可在小红书创作者中心「笔记管理」中查看和编辑可见性</p>
+          </div>
+          <div className="flex gap-4 justify-center">
+            <button
+              onClick={handlePublish}
+              disabled={publishing}
+              className="px-8 py-3 bg-red-500 hover:bg-red-400 disabled:opacity-50 rounded-lg text-white font-medium transition-colors"
+            >
+              自动发布
+            </button>
+            <a
+              href={`/api/export/${taskId}`}
+              className="px-8 py-3 bg-green-600 hover:bg-green-500 rounded-lg text-white font-medium transition-colors inline-block"
+            >
+              导出图片+文案
+            </a>
+          </div>
+          <p className="text-gray-600 text-xs">自动发布可能被小红书检测，导出后手动发布更稳定</p>
         </div>
       )}
     </div>

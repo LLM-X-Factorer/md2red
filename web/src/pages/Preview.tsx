@@ -72,9 +72,17 @@ export default function Preview() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">预览编辑</h2>
-        <button onClick={savePlan} disabled={saving} className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg text-white text-sm font-medium transition-colors">
-          {saving ? '保存中...' : '确认并发布 →'}
-        </button>
+        <div className="flex gap-3">
+          <a
+            href={`/api/export/${taskId}`}
+            className="px-5 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-white text-sm font-medium transition-colors"
+          >
+            导出图片+文案
+          </a>
+          <button onClick={savePlan} disabled={saving} className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg text-white text-sm font-medium transition-colors">
+            {saving ? '保存中...' : '确认并发布 →'}
+          </button>
+        </div>
       </div>
 
       <div className="flex gap-6">

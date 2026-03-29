@@ -13,6 +13,7 @@ import './routes/publish.js';
 import './routes/history.js';
 import './routes/config.js';
 import './routes/tasks.js';
+import './routes/export.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
 const STATIC_DIR = resolve(__dirname, '..', '..', 'web', 'dist');
