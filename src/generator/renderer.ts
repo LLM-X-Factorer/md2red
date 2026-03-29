@@ -23,35 +23,38 @@ async function getBrowser(): Promise<Browser> {
 
   const chromePath = findChrome();
 
-  // If system Chrome available, launch independently and connect via CDP
-  // (avoids Playwright injecting incompatible flags)
+  // If system Chrome available, try CDP mode (avoids Playwright flag issues in Docker)
   if (chromePath) {
-    const port = 29222 + Math.floor(Math.random() * 1000);
-    chromeProcess = spawn(chromePath, [
-      `--remote-debugging-port=${port}`,
-      '--headless=new',
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-      '--no-first-run',
-      'about:blank',
-    ], { stdio: 'ignore' });
+    try {
+      const port = 29222 + Math.floor(Math.random() * 1000);
+      chromeProcess = spawn(chromePath, [
+        `--remote-debugging-port=${port}`,
+        '--headless=new',
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--no-first-run',
+        'about:blank',
+      ], { stdio: 'ignore' });
 
-    // Wait for Chrome to accept connections
-    for (let i = 0; i < 30; i++) {
-      await new Promise((r) => setTimeout(r, 300));
-      try {
-        const res = await fetch(`http://127.0.0.1:${port}/json/version`);
-        if (res.ok) break;
-      } catch { /* not ready */ }
+      for (let i = 0; i < 20; i++) {
+        await new Promise((r) => setTimeout(r, 300));
+        try {
+          const res = await fetch(`http://127.0.0.1:${port}/json/version`);
+          if (res.ok) break;
+        } catch { /* not ready */ }
+      }
+
+      browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
+      return browser;
+    } catch {
+      // CDP failed, clean up and fall through to Playwright
+      if (chromeProcess) { try { chromeProcess.kill(); } catch {} chromeProcess = null; }
     }
-
-    browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
-    return browser;
   }
 
-  // Fallback: let Playwright handle it
+  // Fallback: Playwright bundled Chromium (works in CI)
   browser = await chromium.launch({ headless: true });
   return browser;
 }
