@@ -21,7 +21,8 @@ RUN npm config set registry https://registry.npmmirror.com
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Install Playwright Chromium (headless only, no Chrome/Xvfb needed)
+# Install Playwright Chromium (use China mirror for faster download in CN servers)
+ENV PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.npmmirror.com/binaries/playwright
 RUN npx playwright install chromium
 
 # --- Source code layers (busted by CACHE_BUST arg) ---
