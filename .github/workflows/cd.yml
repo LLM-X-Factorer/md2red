@@ -19,6 +19,7 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_KEY }}
+          command_timeout: 30m
           script: |
             DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
             cd "${DEPLOY_PATH:-/opt/md2red}"
