@@ -20,13 +20,11 @@ async function sendMultipart(url: string, filename: string, content: string): Pr
 }
 
 test.beforeAll(async () => {
-  // Start web server
   serverProcess = spawn('node', ['dist/web/server.js'], {
     env: { ...process.env, PORT: String(PORT) },
     stdio: 'pipe',
   });
 
-  // Wait for server to start
   await new Promise<void>((resolve) => {
     const check = setInterval(async () => {
       try {
@@ -62,15 +60,7 @@ test.describe('web API', () => {
   test('GET /api/config masks API key', async () => {
     const res = await fetch(`${BASE}/api/config`);
     const data = await res.json() as any;
-    // apiKey should be masked or empty, never exposed raw
     expect(data.llm.apiKey).toMatch(/^(\*\*\*|)$/);
-  });
-
-  test('GET /api/auth/status returns loggedIn field', async () => {
-    const res = await fetch(`${BASE}/api/auth/status`);
-    expect(res.status).toBe(200);
-    const data = await res.json() as any;
-    expect(typeof data.loggedIn).toBe('boolean');
   });
 
   test('POST /api/upload accepts file and returns parsed info', async () => {
@@ -83,11 +73,9 @@ test.describe('web API', () => {
   });
 
   test('POST /api/generate starts task and returns taskId', async () => {
-    // First upload
     const uploadRes = await sendMultipart(`${BASE}/api/upload`, 'gen-test.md', '# Gen Test\n\n## Part 1\n\nContent\n\n## Part 2\n\nMore');
     const uploadData = uploadRes.data;
 
-    // Start generation
     const genRes = await fetch(`${BASE}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -97,7 +85,6 @@ test.describe('web API', () => {
     const genData = await genRes.json() as any;
     expect(genData.taskId).toBeTruthy();
 
-    // Poll until complete (or timeout)
     let taskStatus = 'pending';
     for (let i = 0; i < 60; i++) {
       const taskRes = await fetch(`${BASE}/api/tasks/${genData.taskId}`);

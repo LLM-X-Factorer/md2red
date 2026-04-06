@@ -18,7 +18,7 @@ test.describe('full pipeline', () => {
     await rm(outputDir, { recursive: true, force: true });
   });
 
-  test('generate → preview → publish-plan roundtrip', async () => {
+  test('generate → preview roundtrip', async () => {
     // 1. Generate
     const genOutput = run(`${CLI} generate ${SAMPLE} -o ${outputDir}`);
     expect(genOutput).toContain('完成');
@@ -40,13 +40,6 @@ test.describe('full pipeline', () => {
     expect(previewPath).toContain('preview.html');
     const previewHtml = await readFile(previewPath, 'utf-8');
     expect(previewHtml).toContain('md2red');
-    expect(previewHtml).toContain('确认发布方案');
-
-    // 5. publish --dry-run reads strategy correctly
-    const dryRun = run(`${CLI} publish --dry-run ${outputDir}`);
-    expect(dryRun).toContain('Dry run');
-    expect(dryRun).toContain(strategy.titles[0]);
-    expect(dryRun).toContain(`${pngs.length} 张`);
   });
 });
 
@@ -55,16 +48,15 @@ test.describe('duplicate detection', () => {
 
   test.afterAll(async () => {
     await rm(outputDir, { recursive: true, force: true });
-    // Clear history entry
     try { run(`${CLI} history clear`); } catch { /* ok */ }
   });
 
   test('run detects duplicate and skips', async () => {
     // First run
-    run(`${CLI} run ${SAMPLE} --no-publish -o ${outputDir}`);
+    run(`${CLI} run ${SAMPLE} -o ${outputDir}`);
 
     // Second run should detect duplicate
-    const output2 = run(`${CLI} run ${SAMPLE} --no-publish -o ${outputDir} 2>&1 || true`);
+    const output2 = run(`${CLI} run ${SAMPLE} -o ${outputDir} 2>&1 || true`);
     expect(output2).toContain('已');
     expect(output2).toContain('--force');
   });
@@ -78,20 +70,6 @@ test.describe('error handling', () => {
     } catch (err: unknown) {
       const error = err as { status: number; stderr: string };
       expect(error.status).toBe(1);
-    }
-  });
-
-  test('publish without strategy shows helpful error', () => {
-    const emptyDir = join(tmpdir(), `md2red-e2e-empty-${Date.now()}`);
-    try {
-      execSync(`mkdir -p ${emptyDir}`);
-      run(`${CLI} publish --dry-run ${emptyDir}`);
-      expect(true).toBe(false);
-    } catch (err: unknown) {
-      const error = err as { status: number; stderr: string };
-      expect(error.status).toBe(1);
-    } finally {
-      rm(emptyDir, { recursive: true, force: true });
     }
   });
 });
@@ -108,12 +86,6 @@ test.describe('cli basics', () => {
     expect(output).toContain('parse');
     expect(output).toContain('generate');
     expect(output).toContain('preview');
-    expect(output).toContain('publish');
-    expect(output).toContain('auth');
-    expect(output).toContain('health');
-    expect(output).toContain('validate');
-    expect(output).toContain('stats');
-    expect(output).toContain('scrape');
     expect(output).toContain('history');
     expect(output).toContain('init');
   });

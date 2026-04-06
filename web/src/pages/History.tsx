@@ -18,7 +18,7 @@ export default function History() {
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <h2 className="text-2xl font-bold">发布历史</h2>
+        <h2 className="text-2xl font-bold">生成历史</h2>
         {records.length > 0 && (
           <button onClick={clearAll} className="text-sm text-red-400 hover:text-red-300">清除全部</button>
         )}

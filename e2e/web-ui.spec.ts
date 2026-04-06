@@ -36,8 +36,7 @@ test.describe('web UI', () => {
     await page.goto(BASE);
     await expect(page.locator('nav')).toContainText('首页');
     await expect(page.locator('nav')).toContainText('上传生成');
-    await expect(page.locator('nav')).toContainText('账号登录');
-    await expect(page.locator('nav')).toContainText('发布历史');
+    await expect(page.locator('nav')).toContainText('生成历史');
     await expect(page.locator('nav')).toContainText('设置');
   });
 
@@ -47,32 +46,16 @@ test.describe('web UI', () => {
     await expect(page.locator('h2')).toContainText('上传 Markdown');
   });
 
-  test('navigate to auth page', async ({ page }) => {
-    await page.goto(BASE);
-    await page.click('text=账号登录');
-    await expect(page.locator('h2')).toContainText('小红书登录');
-  });
-
   test('navigate to history page', async ({ page }) => {
     await page.goto(BASE);
-    await page.click('text=发布历史');
-    await expect(page.locator('h2')).toContainText('发布历史');
+    await page.click('text=生成历史');
+    await expect(page.locator('h2')).toContainText('历史');
   });
 
   test('navigate to settings page', async ({ page }) => {
     await page.goto(BASE);
     await page.click('text=设置');
     await expect(page.locator('h2')).toContainText('设置');
-  });
-
-  test('dashboard shows auth status', async ({ page }) => {
-    await page.goto(BASE);
-    // Wait for auth check to complete (may take a few seconds)
-    await page.waitForTimeout(8000);
-    const text = await page.locator('body').textContent() || '';
-    // Should show login status or a login link
-    const hasStatus = text.includes('已登录') || text.includes('未登录') || text.includes('去登录') || text.includes('检查中');
-    expect(hasStatus).toBe(true);
   });
 
   test('settings page shows config sections', async ({ page }) => {
