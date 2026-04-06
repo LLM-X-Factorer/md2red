@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-md2red 是一个 TypeScript CLI 工具 + Web 控制台，将 Markdown 文档转化为小红书图文轮播帖子并发布。
+md2red 是一个 TypeScript CLI 工具 + Web 控制台，将 Markdown 文档转化为小红书风格的图文轮播卡片。生成的图片可通过导出功能下载后手动发布。
 
 ## 构建
 
@@ -24,19 +24,18 @@ npm run test:all       # 全部测试
 
 ```
 src/                    后端（TypeScript，编译到 dist/）
-├── cli/               CLI 入口 + 15 个命令
+├── cli/               CLI 入口（run, parse, generate, preview, history, init）
 ├── web/               Web 控制台后端（HTTP API + SSE）
 ├── parser/            Markdown 解析（remark）
 ├── strategy/          LLM 内容策略（Gemini/OpenAI/Anthropic）
-├── generator/         React SSR 图片渲染（Playwright 截图）
-├── publisher/         小红书浏览器自动化（headful Chrome）
+├── generator/         React SSR 图片渲染（Playwright headless 截图）
 ├── preview/           交互式预览 HTML 生成
-├── tracker/           发布历史和去重
+├── tracker/           生成历史和去重
 ├── config/            YAML 配置 + Zod 验证
 └── utils/             日志、图片下载、哈希
 
 web/                    前端（Vite + React + Tailwind，构建到 web/dist/）
-├── src/pages/         7 个页面（Dashboard, Upload, Preview, Publish, Auth, History, Settings）
+├── src/pages/         5 个页面（Dashboard, Upload, Preview, History, Settings）
 ├── src/components/    Layout, TaskProgress, StatusBadge, CardCarousel
 └── src/hooks/         useSSE（SSE 进度钩子）
 
@@ -46,11 +45,8 @@ scripts/                部署脚本
 
 ## 关键约束
 
-- **仅自己可见**：发布默认私密，这是硬性安全约束
-- **headful Chrome**：auth 和 publish 必须用 headful 模式（headless 被小红书检测），本地用系统 Chrome（`channel: 'chrome'`），Docker 用 Xvfb
-- **选择器脆弱**：小红书 DOM 选择器在 `src/publisher/xhs-selectors.ts` 中集中管理，XHS 更新 UI 后需要更新。用 `md2red validate` 检测
-- **Cookie 有效期 ~7 天**：需要定期重新扫码登录
 - **ESM 模块**：整个项目使用 ES modules（`"type": "module"`）
+- **Playwright headless**：图片渲染用 Playwright Chromium headless 截图，不需要系统 Chrome
 
 ## 开发模式
 
@@ -68,7 +64,7 @@ npm run start:web      # 启动 :3001，同时服务 API 和前端静态文件
 ## Docker
 
 ```bash
-docker compose build   # 构建镜像（Chrome + Xvfb + 中文字体）
+docker compose build   # 构建镜像（Playwright Chromium + 中文字体）
 docker compose up -d   # 启动 Web 控制台 :3001
 ```
 
@@ -77,21 +73,12 @@ docker compose up -d   # 启动 Web 控制台 :3001
 docker compose run --rm md2red generate /articles/article.md
 ```
 
-### Docker 开发注意事项（必读）
+### Docker 开发注意事项
 
-以下是实际部署中踩过的坑，修改相关代码时务必注意：
-
-1. **Chrome 必须用 CDP 连接模式**：`renderer.ts` 和 `xhs-browser.ts` 都用独立启动 Chrome + `connectOverCDP()`。不要用 `executablePath`（Playwright 注入的 flags 会导致 SIGSEGV）
-2. **Xvfb 后台启动**：不要用 `xvfb-run`（无法启动 node），用 `Xvfb :99 &` + `export DISPLAY=:99`
-3. **Chrome spawn 传 DISPLAY**：`spawn(chrome, args, { env: { ...process.env, DISPLAY: ':99' } })`
-4. **apt 镜像源用 HTTP**：base 镜像没有 ca-certificates，必须用 `http://` 而非 `https://`
-5. **MD2RED_DATA_DIR**：entrypoint 必须 export，否则上传和输出路径不持久化
-6. **图片上传用批量模式**：`setInputFiles(allPaths)` 一次传所有图片，逐个上传只传第一张
-7. **草稿功能在 Docker 里无效**：XHS 草稿存浏览器 localStorage，Web 控制台只做"仅自己可见"发布
-5. **Cookie 文件路径**：通过 symlink `~/.md2red → /data` 映射到 volume，确保 `loadCookies` 能找到
-6. **CDP 连接模式**：`xhs-browser.ts` 独立启动 Chrome 再通过 CDP 连接，减少自动化检测。注意 page 生命周期——不要在 auth 流程中途关闭 page
-7. **Docker build 缓存**：修改 src/ 后如果 build 没生效，`touch tsconfig.json` 让 Docker 检测到变化，避免 `--no-cache`（会重新下载 Chrome，非常慢）
-8. **任何 Docker 相关改动必须在容器内验证后再推代码**
+1. **apt 镜像源用 HTTP**：base 镜像没有 ca-certificates，必须用 `http://` 而非 `https://`
+2. **MD2RED_DATA_DIR**：entrypoint 必须 export，否则上传和输出路径不持久化
+3. **Docker build 缓存**：修改 src/ 后如果 build 没生效，`touch tsconfig.json` 让 Docker 检测到变化，避免 `--no-cache`（会重新安装 Chromium，较慢）
+4. **任何 Docker 相关改动必须在容器内验证后再推代码**
 
 ## 代码风格
 

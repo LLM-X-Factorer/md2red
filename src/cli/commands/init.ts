@@ -8,11 +8,6 @@ llm:
   model: gemini-2.5-flash
   apiKey: \${GEMINI_API_KEY}
 
-xhs:
-  cookiePath: ~/.md2red/cookies.json
-  visibility: 仅自己可见
-  publishDelay: 3000
-
 images:
   width: 1080
   height: 1440

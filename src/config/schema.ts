@@ -8,25 +8,6 @@ const llmSchema = z.object({
   maxTokens: z.number().default(4096),
 });
 
-const notificationSchema = z.object({
-  enabled: z.boolean().default(false),
-  webhookUrl: z.string().optional(),
-  webhookType: z.enum(['generic', 'wechat-work', 'telegram']).default('generic'),
-});
-
-const healthCheckSchema = z.object({
-  enabled: z.boolean().default(false),
-  intervalHours: z.number().default(12),
-  notification: notificationSchema.optional().default(notificationSchema.parse({})),
-});
-
-const xhsSchema = z.object({
-  cookiePath: z.string().default('~/.md2red/cookies.json'),
-  visibility: z.enum(['公开可见', '仅自己可见', '仅互关好友可见']).default('仅自己可见'),
-  publishDelay: z.number().default(3000),
-  healthCheck: healthCheckSchema.optional().default(healthCheckSchema.parse({})),
-});
-
 const fontSchema = z.object({
   heading: z.string().default('Noto Sans SC'),
   body: z.string().default('Noto Sans SC'),
@@ -57,10 +38,9 @@ const outputSchema = z.object({
 
 export const configSchema = z.object({
   llm: llmSchema.optional().default(llmSchema.parse({})),
-  xhs: xhsSchema.optional().default(xhsSchema.parse({})),
   images: imagesSchema.optional().default(imagesSchema.parse({})),
   content: contentSchema.optional().default(contentSchema.parse({})),
   output: outputSchema.optional().default(outputSchema.parse({})),
-});
+}).passthrough();
 
 export type Md2RedConfig = z.infer<typeof configSchema>;

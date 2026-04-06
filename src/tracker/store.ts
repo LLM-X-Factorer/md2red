@@ -2,34 +2,20 @@ import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { homedir } from 'node:os';
 
-export interface NoteMetrics {
-  views: number;
-  likes: number;
-  comments: number;
-  collects: number;
-  shares: number;
-}
-
-export interface PublishRecord {
+export interface GenerationRecord {
   id: string;
   sourceFile: string;
   sourceHash: string;
   title: string;
-  noteId?: string;
-  noteUrl?: string;
-  status: 'generated' | 'previewed' | 'published' | 'failed';
+  status: 'generated' | 'previewed';
   imageCount: number;
   outputDir: string;
   createdAt: string;
-  publishedAt?: string;
-  errorMessage?: string;
-  metrics?: NoteMetrics;
-  metricsUpdatedAt?: string;
 }
 
 const HISTORY_PATH = join(homedir(), '.md2red', 'history.json');
 
-export async function loadHistory(): Promise<PublishRecord[]> {
+export async function loadHistory(): Promise<GenerationRecord[]> {
   try {
     const raw = await readFile(HISTORY_PATH, 'utf-8');
     return JSON.parse(raw);
@@ -38,25 +24,25 @@ export async function loadHistory(): Promise<PublishRecord[]> {
   }
 }
 
-export async function saveHistory(records: PublishRecord[]): Promise<void> {
+export async function saveHistory(records: GenerationRecord[]): Promise<void> {
   await mkdir(dirname(HISTORY_PATH), { recursive: true });
   await writeFile(HISTORY_PATH, JSON.stringify(records, null, 2));
 }
 
-export async function addRecord(record: PublishRecord): Promise<void> {
+export async function addRecord(record: GenerationRecord): Promise<void> {
   const history = await loadHistory();
   history.push(record);
   await saveHistory(history);
 }
 
-export async function findByHash(hash: string): Promise<PublishRecord | undefined> {
+export async function findByHash(hash: string): Promise<GenerationRecord | undefined> {
   const history = await loadHistory();
   return history.find((r) => r.sourceHash === hash);
 }
 
 export async function updateRecord(
   id: string,
-  update: Partial<PublishRecord>,
+  update: Partial<GenerationRecord>,
 ): Promise<void> {
   const history = await loadHistory();
   const idx = history.findIndex((r) => r.id === id);

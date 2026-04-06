@@ -71,11 +71,7 @@ export async function runCommand(
     logger.info(`预览: ${previewPath}`);
     logger.info(`输出: ${outputDir}`);
 
-    if (opts.noPublish) {
-      logger.info('已跳过发布 (--no-publish)');
-    } else {
-      logger.info('发布请运行: md2red publish ' + outputDir);
-    }
+    logger.info('导出请运行: md2red preview ' + outputDir);
   } catch (err) {
     logger.error(`运行失败: ${(err as Error).message}`);
     process.exit(1);

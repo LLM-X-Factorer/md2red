@@ -7,19 +7,6 @@ export const defaultConfig: Md2RedConfig = {
     temperature: 0.7,
     maxTokens: 4096,
   },
-  xhs: {
-    cookiePath: '~/.md2red/cookies.json',
-    visibility: '仅自己可见',
-    publishDelay: 3000,
-    healthCheck: {
-      enabled: false,
-      intervalHours: 12,
-      notification: {
-        enabled: false,
-        webhookType: 'generic' as const,
-      },
-    },
-  },
   images: {
     width: 1080,
     height: 1440,

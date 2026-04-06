@@ -56,7 +56,7 @@ export default function Preview() {
     setSaving(true);
     try {
       await put(`/api/preview/${taskId}`, { title, summary, tags, imageOrder });
-      navigate(`/publish/${taskId}`);
+      navigate(`/history`);
     } catch (err: any) {
       alert('保存失败: ' + err.message);
     } finally {
@@ -80,7 +80,7 @@ export default function Preview() {
             导出图片+文案
           </a>
           <button onClick={savePlan} disabled={saving} className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg text-white text-sm font-medium transition-colors">
-            {saving ? '保存中...' : '确认并发布 →'}
+            {saving ? '保存中...' : '保存'}
           </button>
         </div>
       </div>

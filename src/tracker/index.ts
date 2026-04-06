@@ -4,17 +4,16 @@ import { logger } from '../utils/logger.js';
 import {
   addRecord,
   findByHash,
-  updateRecord,
-  type PublishRecord,
+  type GenerationRecord,
 } from './store.js';
 
-export type { PublishRecord, NoteMetrics } from './store.js';
+export type { GenerationRecord } from './store.js';
 export { loadHistory, clearHistory } from './store.js';
 
 export async function checkDuplicate(
   sourceFile: string,
   force: boolean,
-): Promise<{ isDuplicate: boolean; hash: string; existing?: PublishRecord }> {
+): Promise<{ isDuplicate: boolean; hash: string; existing?: GenerationRecord }> {
   const hash = await fileHash(sourceFile);
   const existing = await findByHash(hash);
 
@@ -47,29 +46,4 @@ export async function createRecord(
     createdAt: new Date().toISOString(),
   });
   return id;
-}
-
-export async function markPublished(id: string, noteId?: string): Promise<void> {
-  await updateRecord(id, {
-    status: 'published',
-    noteId,
-    publishedAt: new Date().toISOString(),
-  });
-}
-
-export async function markFailed(id: string, error: string): Promise<void> {
-  await updateRecord(id, {
-    status: 'failed',
-    errorMessage: error,
-  });
-}
-
-export async function updateMetrics(
-  id: string,
-  metrics: import('./store.js').NoteMetrics,
-): Promise<void> {
-  await updateRecord(id, {
-    metrics,
-    metricsUpdatedAt: new Date().toISOString(),
-  });
 }

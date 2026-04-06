@@ -4,8 +4,7 @@ import { NavLink } from 'react-router';
 const NAV = [
   { to: '/', label: '首页', icon: '🏠' },
   { to: '/upload', label: '上传生成', icon: '📄' },
-  { to: '/auth', label: '账号登录', icon: '🔑' },
-  { to: '/history', label: '发布历史', icon: '📋' },
+  { to: '/history', label: '生成历史', icon: '📋' },
   { to: '/settings', label: '设置', icon: '⚙️' },
 ];
 

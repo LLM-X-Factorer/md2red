@@ -6,11 +6,9 @@ import { dispatch, json, readBody } from './router.js';
 import { isAuthEnabled, checkAuth, handleLogin, handleLogout, serveLoginPage } from './auth-middleware.js';
 
 // Import all route registrations
-import './routes/auth.js';
 import './routes/upload.js';
 import './routes/generate.js';
 import './routes/preview.js';
-import './routes/publish.js';
 import './routes/history.js';
 import './routes/config.js';
 import './routes/tasks.js';
