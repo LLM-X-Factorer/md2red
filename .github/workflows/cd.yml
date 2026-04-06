@@ -27,7 +27,7 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
-            # Rebuild with cache bust (only src layers rebuild, Chrome cached)
+            # Rebuild with cache bust (only src layers rebuild)
             CACHE_BUST=$(date +%s) docker compose build
 
             # Restart
@@ -35,5 +35,5 @@ jobs:
 
             # Verify
             sleep 3
-            docker compose exec md2red wget -qO- http://localhost:3001/api/auth/status || echo "Health check failed"
+            docker compose exec md2red wget -qO- http://localhost:3001/api/console-auth || echo "Health check failed"
             echo "Deploy complete: $(date)"

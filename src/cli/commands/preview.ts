@@ -34,8 +34,7 @@ export async function previewCommand(dir: string, opts?: { port?: string }) {
             await writeFile(planPath, body);
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ ok: true, path: planPath }));
-            logger.success(`发布方案已保存: ${planPath}`);
-            logger.info('运行 md2red publish ' + outputDir + ' 发布');
+            logger.success(`编辑方案已保存: ${planPath}`);
           } catch (err) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ ok: false, error: (err as Error).message }));

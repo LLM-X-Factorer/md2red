@@ -111,7 +111,7 @@ section{background:#161616;border-radius:10px;padding:16px}
   <h1>md2red 预览</h1>
   <div class="actions">
     <button class="btn-secondary" onclick="window.close()">关闭</button>
-    <button class="btn-confirm" onclick="exportPlan()">确认发布方案</button>
+    <button class="btn-confirm" onclick="exportPlan()">确认方案</button>
   </div>
 </div>
 <div class="container">
@@ -254,7 +254,7 @@ async function exportPlan() {
     });
     const data = await res.json();
     if (data.ok) {
-      showToast('已保存! 运行 md2red publish 发布');
+      showToast('已保存! 可点击「导出」下载图片及文案');
     } else {
       showToast('保存失败: ' + data.error);
     }

@@ -12,7 +12,7 @@ const program = new Command();
 program
   .name('md2red')
   .description('Markdown to Xiaohongshu (RED) image card generator')
-  .version('0.3.0');
+  .version('0.3.1');
 
 program
   .command('run <file>')
