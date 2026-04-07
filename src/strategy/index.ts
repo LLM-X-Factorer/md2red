@@ -44,6 +44,18 @@ export async function generateStrategy(
     throw new Error(`LLM 返回的 JSON 解析失败:\n${raw.slice(0, 500)}`);
   }
 
+  // Normalize titles: ensure array, add doc.title as fallback
+  if (!Array.isArray(parsed.titles) || parsed.titles.length === 0) {
+    parsed.titles = [doc.title];
+  }
+  // Add original doc title if not already included
+  if (!parsed.titles.includes(doc.title)) {
+    parsed.titles.push(doc.title);
+  }
+
+  // Normalize tags: ensure array
+  if (!Array.isArray(parsed.tags)) parsed.tags = [];
+
   for (const card of parsed.cardPlan) {
     if (card.type === 'code' && card.sourceBlockIndex != null) {
       const block = doc.contentBlocks[card.sourceBlockIndex];

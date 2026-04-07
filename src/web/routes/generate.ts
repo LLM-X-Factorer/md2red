@@ -7,6 +7,8 @@ import { generateImages, generateFromStrategy } from '../../generator/index.js';
 import { generateStrategy } from '../../strategy/index.js';
 import { hasApiKey } from '../../strategy/providers/index.js';
 import { loadConfig } from '../../config/index.js';
+import { createRecord } from '../../tracker/index.js';
+import { fileHash } from '../../utils/hash.js';
 
 const OUTPUT_BASE = process.env.MD2RED_DATA_DIR
   ? resolve(process.env.MD2RED_DATA_DIR, 'output')
@@ -60,8 +62,10 @@ route('POST', '/api/generate', async (req, res) => {
           paths = await generateImages(doc, { outputDir, theme: themeName, maxCards: cards });
         }
 
-        // Step 4: Done
-        updateTask(task.id, { step: 4, total: 4, message: '完成' });
+        // Step 4: Record history
+        updateTask(task.id, { step: 4, total: 4, message: '记录历史...' });
+        const hash = await fileHash(filePath);
+        await createRecord(filePath, hash, doc.title, paths.length, outputDir);
 
         completeTask(task.id, {
           outputDir,
