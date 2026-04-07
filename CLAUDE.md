@@ -27,7 +27,7 @@ src/                    后端（TypeScript，编译到 dist/）
 ├── cli/               CLI 入口（run, parse, generate, preview, history, init）
 ├── web/               Web 控制台后端（HTTP API + SSE）
 ├── parser/            Markdown 解析（remark）
-├── strategy/          LLM 内容策略（Gemini/OpenAI/Anthropic）
+├── strategy/          LLM 内容策略（Gemini/OpenAI/Anthropic/SiliconFlow）
 ├── generator/         React SSR 图片渲染（Playwright headless 截图）
 ├── preview/           交互式预览 HTML 生成
 ├── tracker/           生成历史和去重

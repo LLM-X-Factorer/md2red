@@ -8,7 +8,7 @@ Transform Markdown documents into Xiaohongshu (RED) style carousel image cards. 
 - **React SSR Image Cards** — Cover, content, code, and summary card templates at 1080×1440 pixels (3:4 ratio)
 - **Syntax Highlighting** — Shiki-powered code highlighting with Catppuccin themes (dark/light)
 - **Markdown Rendering** — Lists, bold, italic, inline code rendered via remark-rehype pipeline
-- **Multi-LLM Strategy** — Gemini, OpenAI, or Anthropic for generating XHS-style titles, summaries, tags, and card plans
+- **Multi-LLM Strategy** — Gemini, OpenAI, Anthropic, or SiliconFlow for generating XHS-style titles, summaries, tags, and card plans
 - **Interactive Preview** — Browser-based editor: drag-sort cards, delete cards, edit title/summary/tags
 - **Export Package** — Download zip with all card images + copytext file for manual posting to any platform
 - **Dark & Light Themes** — Two built-in color schemes
