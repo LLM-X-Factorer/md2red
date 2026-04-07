@@ -1,10 +1,38 @@
 import React, { useEffect, useState } from 'react';
 import { get, put } from '../api';
 
+const PROVIDER_MODELS: Record<string, { label: string; value: string }[]> = {
+  gemini: [
+    { label: 'Gemini 2.5 Flash', value: 'gemini-2.5-flash' },
+    { label: 'Gemini 2.5 Pro', value: 'gemini-2.5-pro' },
+    { label: 'Gemini 2.0 Flash', value: 'gemini-2.0-flash' },
+  ],
+  openai: [
+    { label: 'GPT-4o', value: 'gpt-4o' },
+    { label: 'GPT-4o Mini', value: 'gpt-4o-mini' },
+    { label: 'GPT-4.1', value: 'gpt-4.1' },
+    { label: 'GPT-4.1 Mini', value: 'gpt-4.1-mini' },
+  ],
+  anthropic: [
+    { label: 'Claude Sonnet 4', value: 'claude-sonnet-4-20250514' },
+    { label: 'Claude Haiku 3.5', value: 'claude-3-5-haiku-20241022' },
+  ],
+  siliconflow: [
+    { label: 'MiniMax M2.5', value: 'Pro/MiniMaxAI/MiniMax-M2.5' },
+    { label: 'DeepSeek V3.2', value: 'Pro/deepseek-ai/DeepSeek-V3.2' },
+    { label: 'DeepSeek V3', value: 'Pro/deepseek-ai/DeepSeek-V3' },
+    { label: 'GLM-5', value: 'Pro/zai-org/GLM-5' },
+    { label: 'GLM-4.7', value: 'Pro/zai-org/GLM-4.7' },
+    { label: 'Kimi K2.5', value: 'Pro/moonshotai/Kimi-K2.5' },
+    { label: 'DeepSeek R1', value: 'Pro/deepseek-ai/DeepSeek-R1' },
+  ],
+};
+
 export default function Settings() {
   const [config, setConfig] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [customModel, setCustomModel] = useState(false);
 
   useEffect(() => {
     get<any>('/api/config').then(setConfig);
@@ -30,6 +58,12 @@ export default function Settings() {
     }
   };
 
+  // Check if current model is in the preset list
+  const provider = config?.llm?.provider || 'gemini';
+  const models = PROVIDER_MODELS[provider] || [];
+  const currentModel = config?.llm?.model || '';
+  const isPreset = !currentModel || models.some((m) => m.value === currentModel);
+
   if (!config) return <p className="text-gray-500">加载中...</p>;
 
   return (
@@ -48,12 +82,57 @@ export default function Settings() {
       <div className="space-y-6">
         <Section title="LLM 设置">
           <Field label="Provider">
-            <select value={config.llm?.provider} onChange={(e) => update('llm', 'provider', e.target.value)} className="input">
+            <select
+              value={provider}
+              onChange={(e) => {
+                update('llm', 'provider', e.target.value);
+                update('llm', 'model', '');
+                setCustomModel(false);
+              }}
+              className="input"
+            >
               <option value="gemini">Gemini</option>
               <option value="openai">OpenAI</option>
               <option value="anthropic">Anthropic</option>
               <option value="siliconflow">硅基流动 (SiliconFlow)</option>
             </select>
+          </Field>
+          <Field label="模型">
+            {!customModel && isPreset ? (
+              <div className="flex gap-2 items-center">
+                <select
+                  value={currentModel}
+                  onChange={(e) => update('llm', 'model', e.target.value)}
+                  className="input"
+                >
+                  <option value="">默认</option>
+                  {models.map((m) => (
+                    <option key={m.value} value={m.value}>{m.label}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => setCustomModel(true)}
+                  className="text-xs text-indigo-600 hover:text-indigo-500 whitespace-nowrap"
+                >
+                  自定义
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2 items-center">
+                <input
+                  value={currentModel}
+                  onChange={(e) => update('llm', 'model', e.target.value)}
+                  placeholder="输入模型名称"
+                  className="input"
+                />
+                <button
+                  onClick={() => setCustomModel(false)}
+                  className="text-xs text-indigo-600 hover:text-indigo-500 whitespace-nowrap"
+                >
+                  选择
+                </button>
+              </div>
+            )}
           </Field>
           <Field label="API Key">
             <input
