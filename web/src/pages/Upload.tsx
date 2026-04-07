@@ -47,7 +47,6 @@ export default function Upload() {
       });
       sse.connect(data.taskId);
 
-      // Poll for completion → navigate to preview
       const check = setInterval(async () => {
         try {
           const res = await fetch(`/api/tasks/${data.taskId}`);
@@ -73,27 +72,26 @@ export default function Upload() {
       <h2 className="text-2xl font-bold mb-8">上传 Markdown</h2>
 
       {error && (
-        <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-4 mb-6">
-          <p className="text-red-400 text-sm">{error}</p>
+        <div className="rounded-lg bg-red-50 border border-red-200 p-4 mb-6">
+          <p className="text-red-600 text-sm">{error}</p>
         </div>
       )}
 
-      {/* Step 1: Upload */}
       {!parsed && !generating && (
         <div
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
-          className="rounded-xl bg-gray-900 border-2 border-dashed border-gray-700 hover:border-indigo-500/50 p-12 text-center transition-colors"
+          className="rounded-xl bg-white border-2 border-dashed border-gray-300 hover:border-indigo-400 p-12 text-center transition-colors"
         >
           <p className="text-4xl mb-4">📄</p>
-          <p className="text-gray-400 mb-4">拖拽 .md 文件到这里，或</p>
-          <label className="inline-block px-5 py-2.5 bg-gray-800 hover:bg-gray-700 rounded-lg cursor-pointer text-sm transition-colors">
+          <p className="text-gray-500 mb-4">拖拽 .md 文件到这里，或</p>
+          <label className="inline-block px-5 py-2.5 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-pointer text-sm text-gray-700 transition-colors">
             选择文件
             <input type="file" accept=".md" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
           </label>
           {file && (
             <div className="mt-6">
-              <p className="text-sm text-gray-300">{file.name} ({(file.size / 1024).toFixed(1)} KB)</p>
+              <p className="text-sm text-gray-700">{file.name} ({(file.size / 1024).toFixed(1)} KB)</p>
               <button
                 onClick={handleUpload}
                 disabled={uploading}
@@ -106,10 +104,9 @@ export default function Upload() {
         </div>
       )}
 
-      {/* Step 2: Parsed result + generate options */}
       {parsed && !generating && (
         <div className="space-y-6">
-          <div className="rounded-xl bg-gray-900 border border-gray-800 p-6">
+          <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-6">
             <h3 className="font-semibold mb-4">解析结果</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div><span className="text-gray-500">标题</span><p className="font-medium mt-1">{parsed.parsed.title}</p></div>
@@ -119,16 +116,16 @@ export default function Upload() {
             </div>
           </div>
 
-          <div className="rounded-xl bg-gray-900 border border-gray-800 p-6">
+          <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-6">
             <h3 className="font-semibold mb-4">生成选项</h3>
             <div className="flex flex-wrap gap-6 items-center">
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
                 <input type="checkbox" checked={useStrategy} onChange={(e) => setUseStrategy(e.target.checked)} className="rounded" />
                 使用 LLM 内容策略
               </label>
-              <label className="flex items-center gap-2 text-sm">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
                 主题
-                <select value={theme} onChange={(e) => setTheme(e.target.value)} className="bg-gray-800 rounded px-3 py-1.5 text-sm border border-gray-700">
+                <select value={theme} onChange={(e) => setTheme(e.target.value)} className="input">
                   <option value="dark">暗色</option>
                   <option value="light">亮色</option>
                 </select>
@@ -144,7 +141,6 @@ export default function Upload() {
         </div>
       )}
 
-      {/* Step 3: Progress */}
       {generating && (
         <div className="space-y-4">
           {sse.progress ? (
@@ -156,9 +152,9 @@ export default function Upload() {
               error={sse.error}
             />
           ) : (
-            <div className="rounded-xl bg-gray-900 border border-gray-800 p-6 text-center">
+            <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-6 text-center">
               <div className="inline-block w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-3" />
-              <p className="text-gray-400 text-sm">正在启动生成任务...</p>
+              <p className="text-gray-500 text-sm">正在启动生成任务...</p>
             </div>
           )}
         </div>

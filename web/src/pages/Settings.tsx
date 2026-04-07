@@ -102,7 +102,7 @@ export default function Settings() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl bg-gray-900 border border-gray-800 p-6">
+    <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-6">
       <h3 className="font-semibold mb-4">{title}</h3>
       <div className="space-y-4">{children}</div>
     </div>
@@ -112,7 +112,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <label className="text-sm text-gray-400 shrink-0">{label}</label>
+      <label className="text-sm text-gray-500 shrink-0">{label}</label>
       {children}
     </div>
   );

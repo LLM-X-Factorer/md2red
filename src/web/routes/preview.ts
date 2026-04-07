@@ -37,6 +37,37 @@ route('GET', '/api/preview/:taskId', async (_req, res, params) => {
   }
 });
 
+// Preview by outputDir (for history records where taskId is expired)
+route('GET', '/api/preview-dir', async (req, res) => {
+  try {
+    const url = new URL(req.url || '', 'http://localhost');
+    const outputDir = url.searchParams.get('dir');
+    if (!outputDir) {
+      json(res, { error: 'Missing dir parameter' }, 400);
+      return;
+    }
+
+    const files = await readdir(outputDir);
+    const imageFiles = files.filter((f) => f.endsWith('.png') || f.endsWith('.jpg')).sort();
+    const images = [];
+    for (const f of imageFiles) {
+      const buf = await readFile(join(outputDir, f));
+      const ext = f.endsWith('.jpg') ? 'jpeg' : 'png';
+      images.push({ name: f, base64: `data:image/${ext};base64,${buf.toString('base64')}` });
+    }
+
+    let strategy = null;
+    try {
+      const raw = await readFile(join(outputDir, 'strategy.json'), 'utf-8');
+      strategy = JSON.parse(raw);
+    } catch { /* no strategy */ }
+
+    json(res, { images, strategy, outputDir });
+  } catch (err) {
+    json(res, { error: (err as Error).message }, 500);
+  }
+});
+
 route('PUT', '/api/preview/:taskId', async (req, res, params) => {
   try {
     const task = getTask(params.taskId);

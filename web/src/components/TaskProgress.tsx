@@ -12,12 +12,12 @@ export default function TaskProgress({ step, total, message, status, error }: Pr
   const pct = Math.round((step / total) * 100);
 
   return (
-    <div className="rounded-xl bg-gray-900 border border-gray-800 p-6">
+    <div className="rounded-xl bg-white border border-gray-200 shadow-sm p-6">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-sm text-gray-400">{message}</span>
-        <span className="text-xs text-gray-500">{step}/{total}</span>
+        <span className="text-sm text-gray-600">{message}</span>
+        <span className="text-xs text-gray-400">{step}/{total}</span>
       </div>
-      <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-500 ${
             status === 'failed' ? 'bg-red-500' : status === 'completed' ? 'bg-green-500' : 'bg-indigo-500'
@@ -25,8 +25,8 @@ export default function TaskProgress({ step, total, message, status, error }: Pr
           style={{ width: `${pct}%` }}
         />
       </div>
-      {error && <p className="mt-3 text-sm text-red-400">{error}</p>}
-      {status === 'completed' && <p className="mt-3 text-sm text-green-400">完成</p>}
+      {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
+      {status === 'completed' && <p className="mt-3 text-sm text-green-600">完成</p>}
     </div>
   );
 }

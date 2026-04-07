@@ -13,7 +13,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         <Route path="/upload" element={<Upload />} />
-        <Route path="/preview/:taskId" element={<Preview />} />
+        <Route path="/preview/*" element={<Preview />} />
         <Route path="/history" element={<History />} />
         <Route path="/settings" element={<Settings />} />
       </Routes>

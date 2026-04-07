@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useLocation } from 'react-router';
 import { get, put } from '../api';
 
 interface ImageData { name: string; base64: string; }
 interface Strategy { titles: string[]; summary: string; tags: string[]; }
 
 export default function Preview() {
-  const { taskId } = useParams();
-  const navigate = useNavigate();
+  const location = useLocation();
+  // Extract everything after /preview/ — could be a taskId or an outputDir path
+  const taskId = location.pathname.replace('/preview/', '');
   const [images, setImages] = useState<ImageData[]>([]);
   const [strategy, setStrategy] = useState<Strategy | null>(null);
   const [current, setCurrent] = useState(0);
@@ -17,9 +18,12 @@ export default function Preview() {
   const [tagInput, setTagInput] = useState('');
   const [imageOrder, setImageOrder] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    get<{ images: ImageData[]; strategy: Strategy }>(`/api/preview/${taskId}`).then((data) => {
+    const isDir = taskId.includes('/');
+    const url = isDir ? `/api/preview-dir?dir=${encodeURIComponent(taskId)}` : `/api/preview/${taskId}`;
+    get<{ images: ImageData[]; strategy: Strategy }>(url).then((data) => {
       setImages(data.images);
       setImageOrder(data.images.map((i) => i.name));
       if (data.strategy) {
@@ -54,9 +58,11 @@ export default function Preview() {
 
   const savePlan = async () => {
     setSaving(true);
+    setSaved(false);
     try {
       await put(`/api/preview/${taskId}`, { title, summary, tags, imageOrder });
-      navigate(`/history`);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
       alert('保存失败: ' + err.message);
     } finally {
@@ -74,36 +80,36 @@ export default function Preview() {
         <h2 className="text-2xl font-bold">预览编辑</h2>
         <div className="flex gap-3">
           <a
-            href={`/api/export/${taskId}`}
+            href={taskId.includes('/') ? `/api/export-dir?dir=${encodeURIComponent(taskId)}` : `/api/export/${taskId}`}
             className="px-5 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-white text-sm font-medium transition-colors"
           >
             导出图片+文案
           </a>
           <button onClick={savePlan} disabled={saving} className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 rounded-lg text-white text-sm font-medium transition-colors">
-            {saving ? '保存中...' : '保存'}
+            {saving ? '保存中...' : saved ? '已保存 ✓' : '保存'}
           </button>
         </div>
       </div>
 
       <div className="flex gap-6">
-        {/* Left: Card viewer */}
         <div className="flex-1 flex flex-col items-center">
-          {currentImg && (
-            <img src={currentImg.base64} alt={currentImg.name} className="max-h-[600px] rounded-lg shadow-2xl" />
-          )}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-2">
+            {currentImg && (
+              <img src={currentImg.base64} alt={currentImg.name} className="max-h-[600px] rounded-lg" />
+            )}
+          </div>
           <div className="flex items-center gap-4 mt-4">
-            <button onClick={() => setCurrent(Math.max(0, current - 1))} className="px-3 py-1 bg-gray-800 rounded hover:bg-gray-700 text-lg">‹</button>
+            <button onClick={() => setCurrent(Math.max(0, current - 1))} className="px-3 py-1 bg-white border border-gray-200 rounded hover:bg-gray-50 text-lg">‹</button>
             <span className="text-sm text-gray-500">{current + 1} / {imageOrder.length}</span>
-            <button onClick={() => setCurrent(Math.min(imageOrder.length - 1, current + 1))} className="px-3 py-1 bg-gray-800 rounded hover:bg-gray-700 text-lg">›</button>
+            <button onClick={() => setCurrent(Math.min(imageOrder.length - 1, current + 1))} className="px-3 py-1 bg-white border border-gray-200 rounded hover:bg-gray-50 text-lg">›</button>
           </div>
         </div>
 
-        {/* Right: Sidebar */}
         <div className="w-80 space-y-5">
-          <section className="rounded-lg bg-gray-900 border border-gray-800 p-4">
-            <h3 className="text-xs font-semibold text-gray-500 mb-2">标题</h3>
+          <section className="rounded-lg bg-white border border-gray-200 shadow-sm p-4">
+            <h3 className="text-xs font-semibold text-gray-400 mb-2">标题</h3>
             {strategy?.titles?.map((t, i) => (
-              <label key={i} className="flex items-start gap-2 p-1.5 rounded hover:bg-gray-800/50 cursor-pointer text-sm">
+              <label key={i} className="flex items-start gap-2 p-1.5 rounded hover:bg-gray-50 cursor-pointer text-sm">
                 <input type="radio" name="title" checked={title === t} onChange={() => setTitle(t)} className="mt-0.5" />
                 <span>{t}</span>
               </label>
@@ -112,24 +118,24 @@ export default function Preview() {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="自定义标题"
-              className="w-full mt-2 px-3 py-1.5 bg-gray-800 border border-gray-700 rounded text-sm"
+              className="w-full mt-2 px-3 py-1.5 bg-white border border-gray-200 rounded text-sm focus:outline-none focus:border-indigo-400"
             />
           </section>
 
-          <section className="rounded-lg bg-gray-900 border border-gray-800 p-4">
-            <h3 className="text-xs font-semibold text-gray-500 mb-2">摘要</h3>
+          <section className="rounded-lg bg-white border border-gray-200 shadow-sm p-4">
+            <h3 className="text-xs font-semibold text-gray-400 mb-2">摘要</h3>
             <textarea
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
-              className="w-full h-28 px-3 py-2 bg-gray-800 border border-gray-700 rounded text-xs leading-relaxed resize-y"
+              className="w-full h-28 px-3 py-2 bg-white border border-gray-200 rounded text-xs leading-relaxed resize-y focus:outline-none focus:border-indigo-400"
             />
           </section>
 
-          <section className="rounded-lg bg-gray-900 border border-gray-800 p-4">
-            <h3 className="text-xs font-semibold text-gray-500 mb-2">标签</h3>
+          <section className="rounded-lg bg-white border border-gray-200 shadow-sm p-4">
+            <h3 className="text-xs font-semibold text-gray-400 mb-2">标签</h3>
             <div className="flex flex-wrap gap-1.5 mb-2">
               {tags.map((t, i) => (
-                <span key={i} className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-indigo-500/15 text-indigo-400 rounded-full text-xs">
+                <span key={i} className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-indigo-50 text-indigo-600 rounded-full text-xs">
                   #{t}
                   <button onClick={() => setTags(tags.filter((_, j) => j !== i))} className="opacity-50 hover:opacity-100">&times;</button>
                 </span>
@@ -141,14 +147,14 @@ export default function Preview() {
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && addTag()}
                 placeholder="添加标签"
-                className="flex-1 px-2 py-1 bg-gray-800 border border-gray-700 rounded text-xs"
+                className="flex-1 px-2 py-1 bg-white border border-gray-200 rounded text-xs focus:outline-none focus:border-indigo-400"
               />
-              <button onClick={addTag} className="px-2 py-1 bg-gray-800 rounded text-xs hover:bg-gray-700">+</button>
+              <button onClick={addTag} className="px-2 py-1 bg-gray-100 rounded text-xs hover:bg-gray-200">+</button>
             </div>
           </section>
 
-          <section className="rounded-lg bg-gray-900 border border-gray-800 p-4">
-            <h3 className="text-xs font-semibold text-gray-500 mb-2">卡片 ({imageOrder.length})</h3>
+          <section className="rounded-lg bg-white border border-gray-200 shadow-sm p-4">
+            <h3 className="text-xs font-semibold text-gray-400 mb-2">卡片 ({imageOrder.length})</h3>
             <div className="flex flex-wrap gap-1.5">
               {imageOrder.map((name, i) => {
                 const img = images.find((x) => x.name === name);

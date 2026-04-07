@@ -71,3 +71,64 @@ route('GET', '/api/export/:taskId', async (_req, res, params) => {
     json(res, { error: (err as Error).message }, 500);
   }
 });
+
+// Export by outputDir (for history records where taskId is expired)
+route('GET', '/api/export-dir', async (req, res) => {
+  try {
+    const url = new URL(req.url || '', 'http://localhost');
+    const outputDir = url.searchParams.get('dir');
+    if (!outputDir) {
+      json(res, { error: 'Missing dir parameter' }, 400);
+      return;
+    }
+
+    let title = '';
+    let summary = '';
+    let tags: string[] = [];
+
+    try {
+      const plan = JSON.parse(await readFile(join(outputDir, 'publish-plan.json'), 'utf-8'));
+      title = plan.title || '';
+      summary = plan.summary || '';
+      tags = plan.tags || [];
+    } catch {
+      try {
+        const strategy = JSON.parse(await readFile(join(outputDir, 'strategy.json'), 'utf-8'));
+        title = strategy.selectedTitle || strategy.titles?.[0] || '';
+        summary = strategy.summary || '';
+        tags = strategy.tags || [];
+      } catch { /* no strategy */ }
+    }
+
+    const copyText = [
+      `标题：${title}`,
+      '',
+      `正文：`,
+      summary,
+      '',
+      `标签：${tags.map((t) => '#' + t).join(' ')}`,
+    ].join('\n');
+
+    const files = await readdir(outputDir);
+    const images = files.filter((f) => f.endsWith('.png') || f.endsWith('.jpg')).sort();
+
+    res.writeHead(200, {
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="${encodeURIComponent(title || 'md2red')}.zip"`,
+      'Access-Control-Allow-Origin': '*',
+    });
+
+    const archive = archiver('zip', { zlib: { level: 5 } });
+    archive.pipe(res);
+
+    for (const img of images) {
+      archive.file(join(outputDir, img), { name: img });
+    }
+
+    archive.append(copyText, { name: '发布文案.txt' });
+
+    await archive.finalize();
+  } catch (err) {
+    json(res, { error: (err as Error).message }, 500);
+  }
+});
