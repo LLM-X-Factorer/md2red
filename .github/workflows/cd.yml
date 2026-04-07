@@ -28,8 +28,8 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
-            # Rebuild (use --no-cache when Dockerfile changed significantly)
-            CACHE_BUST=$(date +%s) docker compose build --no-cache
+            # Rebuild with cache bust (only src layers rebuild)
+            CACHE_BUST=$(date +%s) docker compose build
 
             # Restart
             docker compose down && docker compose up -d
