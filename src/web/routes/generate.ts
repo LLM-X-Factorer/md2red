@@ -1,5 +1,5 @@
 import { resolve, basename } from 'node:path';
-import { writeFile } from 'node:fs/promises';
+import { writeFile, mkdir } from 'node:fs/promises';
 import { route, json, readBody } from '../router.js';
 import { createTask, updateTask, completeTask, failTask } from '../task-manager.js';
 import { parseMarkdown } from '../../parser/index.js';
@@ -46,6 +46,7 @@ route('POST', '/api/generate', async (req, res) => {
           // Step 2: LLM Strategy
           updateTask(task.id, { step: 2, total: 4, message: '生成内容策略 (LLM)...' });
           strategy = await generateStrategy(doc, config);
+          await mkdir(outputDir, { recursive: true });
           await writeFile(resolve(outputDir, 'strategy.json'), JSON.stringify(strategy, null, 2));
 
           // Step 3: Generate images
