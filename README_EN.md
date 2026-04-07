@@ -13,7 +13,7 @@ Transform Markdown documents into Xiaohongshu (RED) style carousel image cards. 
 - **Export Package** — Download zip with all card images + copytext file for manual posting to any platform
 - **Dark & Light Themes** — Two built-in color schemes
 - **State Tracking** — Generation history with duplicate detection (SHA256 hash)
-- **Web Console** — Vite + React + Tailwind browser dashboard for non-technical users
+- **Web Console** — Light-themed Vite + React + Tailwind browser dashboard with export and history management
 - **Docker Deployment** — One-command containerized deployment with Playwright Chromium + Chinese fonts
 
 ## Two Ways to Use

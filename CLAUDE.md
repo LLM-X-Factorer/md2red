@@ -36,7 +36,7 @@ src/                    后端（TypeScript，编译到 dist/）
 
 web/                    前端（Vite + React + Tailwind，构建到 web/dist/）
 ├── src/pages/         5 个页面（Dashboard, Upload, Preview, History, Settings）
-├── src/components/    Layout, TaskProgress, StatusBadge, CardCarousel
+├── src/components/    Layout, TaskProgress, StatusBadge
 └── src/hooks/         useSSE（SSE 进度钩子）
 
 e2e/                    E2E 测试（Playwright）
