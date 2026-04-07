@@ -52,6 +52,7 @@ export default function Settings() {
               <option value="gemini">Gemini</option>
               <option value="openai">OpenAI</option>
               <option value="anthropic">Anthropic</option>
+              <option value="siliconflow">硅基流动 (SiliconFlow)</option>
             </select>
           </Field>
           <Field label="API Key">
