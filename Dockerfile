@@ -21,8 +21,7 @@ RUN npm config set registry https://registry.npmmirror.com
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# Install Playwright Chromium (use China mirror for faster download in CN servers)
-ENV PLAYWRIGHT_DOWNLOAD_HOST=https://cdn.npmmirror.com/binaries/playwright
+# Install Playwright Chromium (official CDN, may be slow in CN but reliable)
 RUN npx playwright install chromium
 
 # --- Source code layers (busted by CACHE_BUST arg) ---
