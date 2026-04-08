@@ -26,8 +26,8 @@ npm run test:all       # 全部测试
 src/                    后端（TypeScript，编译到 dist/）
 ├── cli/               CLI 入口（run, parse, generate, preview, history, init）
 ├── web/               Web 控制台后端（HTTP API + SSE）
-├── parser/            Markdown 解析（remark）
-├── strategy/          LLM 内容策略（Gemini/OpenAI/Anthropic/SiliconFlow）
+├── parser/            Markdown 解析（remark），封面 H2 提取
+├── strategy/          LLM 内容策略（Gemini/OpenAI/Anthropic/SiliconFlow），含重试/修复/fallback
 ├── generator/         React SSR 图片渲染（Playwright headless 截图）
 ├── preview/           交互式预览 HTML 生成
 ├── tracker/           生成历史和去重
@@ -47,6 +47,12 @@ scripts/                部署脚本
 
 - **ESM 模块**：整个项目使用 ES modules（`"type": "module"`）
 - **Playwright headless**：图片渲染用 Playwright Chromium headless 截图，不需要系统 Chrome
+
+## 关键行为
+
+- **封面 H2 提取**：parser 检测第一个 H2 标题为"封面"时，将其内容提取为 `coverText` 并从 contentBlocks 中移除，用作封面卡片副标题
+- **LLM 策略容错**：`generateStrategy()` 返回 `ContentStrategy | null`。截断 JSON 会尝试自动修复（`tryRepairJson`），失败后重试 1 次，仍失败则返回 `null`，调用方 fallback 到直接模式
+- **默认模型**：SiliconFlow 默认 `Qwen/Qwen3-30B-A3B-Instruct-2507`（速度快、约束遵从好、成本低）
 
 ## 开发模式
 

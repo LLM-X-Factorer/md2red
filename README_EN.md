@@ -4,11 +4,11 @@ Transform Markdown documents into Xiaohongshu (RED) style carousel image cards. 
 
 ## Features
 
-- **Markdown Parsing** — Splits Markdown into structured content blocks by H2 headings, extracts code blocks, images, and frontmatter
+- **Markdown Parsing** — Splits Markdown into structured content blocks by H2 headings, extracts code blocks, images, and frontmatter; `## 封面` (cover) H2 auto-merges into the cover card
 - **React SSR Image Cards** — Cover, content, code, and summary card templates at 1080×1440 pixels (3:4 ratio)
 - **Syntax Highlighting** — Shiki-powered code highlighting with Catppuccin themes (dark/light)
 - **Markdown Rendering** — Lists, bold, italic, inline code rendered via remark-rehype pipeline
-- **Multi-LLM Strategy** — Gemini, OpenAI, Anthropic, or SiliconFlow for generating XHS-style titles, summaries, tags, and card plans
+- **Multi-LLM Strategy** — Gemini, OpenAI, Anthropic, or SiliconFlow for generating XHS-style titles, summaries, tags, and card plans; auto-repairs truncated JSON with retry and graceful fallback to direct mode
 - **Interactive Preview** — Browser-based editor: drag-sort cards, delete cards, edit title/summary/tags
 - **Export Package** — Download zip with all card images + copytext file for manual posting to any platform
 - **Dark & Light Themes** — Two built-in color schemes
@@ -57,9 +57,10 @@ For LLM-powered content strategy (better titles, summaries, and card layout), se
 
 ```bash
 # Pick one:
-export GEMINI_API_KEY=your-key      # Google Gemini
-export OPENAI_API_KEY=your-key      # OpenAI
-export ANTHROPIC_API_KEY=your-key   # Anthropic Claude
+export GEMINI_API_KEY=your-key        # Google Gemini
+export OPENAI_API_KEY=your-key        # OpenAI
+export ANTHROPIC_API_KEY=your-key     # Anthropic Claude
+export SILICONFLOW_API_KEY=your-key   # SiliconFlow (recommended for China)
 ```
 
 ### Step 2: Generate Image Cards
@@ -116,7 +117,10 @@ tags: [tag1, tag2]
 
 # Main Title
 
-Introduction paragraph...
+## 封面
+
+This text becomes the cover card subtitle,
+instead of rendering as a separate content card.
 
 ## Section 1
 
@@ -137,6 +141,7 @@ Summary content...
 
 **How content maps to cards:**
 - `H1` or frontmatter `title` → cover card title
+- `## 封面` (cover) → merged into cover card as subtitle (not a separate card)
 - Each `H2` section → one content card
 - Code blocks → code cards with syntax highlighting
 - Final card → auto-generated summary
@@ -171,7 +176,9 @@ Create `md2red.config.yml` in your project root (or run `md2red init`):
 
 ```yaml
 llm:
-  provider: gemini           # gemini | openai | anthropic
+  provider: gemini           # gemini | openai | anthropic | siliconflow
+  # Default models: gemini → gemini-2.5-flash, openai → gpt-4o,
+  #   anthropic → claude-sonnet-4, siliconflow → Qwen3-30B-A3B
   apiKey: ${GEMINI_API_KEY}  # supports env var substitution
   temperature: 0.7
   maxTokens: 4096
@@ -193,7 +200,7 @@ Markdown File
     ↓
 [Parser]        remark → MDAST → ContentBlocks
     ↓
-[Strategy]      LLM (Gemini/OpenAI/Claude) → titles, summary, tags, card plan
+[Strategy]      LLM (Gemini/OpenAI/Claude/SiliconFlow) → titles, summary, tags, card plan
     ↓
 [Generator]     React SSR → HTML → Playwright screenshot → 1080×1440 PNG
     ↓

@@ -6,11 +6,11 @@
 
 ## 功能特性
 
-- **Markdown 解析** — 按 H2 标题自动拆分内容块，提取代码块、图片引用和 frontmatter
+- **Markdown 解析** — 按 H2 标题自动拆分内容块，提取代码块、图片引用和 frontmatter；支持 `## 封面` 自动合并到封面卡片
 - **React SSR 图片卡片** — 封面、内容、代码、总结四种卡片模板，1080×1440 像素（3:4 比例）
 - **语法高亮** — Shiki 驱动的代码高亮，支持 Catppuccin 暗色/亮色主题
 - **Markdown 渲染** — 列表、加粗、斜体、行内代码通过 remark-rehype 管道渲染
-- **多 LLM 支持** — Gemini、OpenAI、Anthropic、硅基流动 (SiliconFlow) 四选一，生成小红书风格标题、摘要、标签和卡片布局
+- **多 LLM 支持** — Gemini、OpenAI、Anthropic、硅基流动 (SiliconFlow) 四选一，生成小红书风格标题、摘要、标签和卡片布局；JSON 解析失败自动修复重试，兜底回退直接模式
 - **交互式预览** — 浏览器中拖拽排序、删除卡片、编辑标题/摘要/标签
 - **导出打包** — 一键下载 zip（所有图片 + 发布文案.txt），方便手动发布到任意平台
 - **状态追踪** — SHA256 哈希防重复生成，生成历史记录
@@ -58,10 +58,11 @@ md2red init
 如果需要 LLM 智能内容策略（更好的标题、摘要和卡片排布），设置 API Key：
 
 ```bash
-# 三选一：
-export GEMINI_API_KEY=your-key      # Google Gemini
-export OPENAI_API_KEY=your-key      # OpenAI
-export ANTHROPIC_API_KEY=your-key   # Anthropic Claude
+# 四选一：
+export GEMINI_API_KEY=your-key        # Google Gemini
+export OPENAI_API_KEY=your-key        # OpenAI
+export ANTHROPIC_API_KEY=your-key     # Anthropic Claude
+export SILICONFLOW_API_KEY=your-key   # 硅基流动（推荐，国内访问快）
 ```
 
 ### 第二步：生成图片卡片
@@ -128,7 +129,10 @@ tags: [标签1, 标签2]
 
 # 主标题
 
-这里是引言段落...
+## 封面
+
+这段文字会成为封面卡片的副标题，
+而不是单独渲染为内容卡片。
 
 ## 第一节
 
@@ -155,6 +159,7 @@ function hello() {
 
 **内容如何映射到卡片：**
 - `H1` 或 frontmatter 中的 `title` → 封面卡片标题
+- `## 封面` → 内容合并到封面卡片作为副标题（不生成独立卡片）
 - 每个 `H2` 章节 → 一张内容卡片
 - 代码块 → 带语法高亮的代码卡片
 - 最后一张 → 自动生成的总结卡片
@@ -189,8 +194,10 @@ function hello() {
 
 ```yaml
 llm:
-  provider: gemini           # gemini | openai | anthropic
+  provider: gemini           # gemini | openai | anthropic | siliconflow
   # model: gemini-2.5-flash  # 可选，按 provider 自动选择默认模型
+  # 默认模型：gemini → gemini-2.5-flash, openai → gpt-4o,
+  #          anthropic → claude-sonnet-4, siliconflow → Qwen3-30B-A3B
   apiKey: ${GEMINI_API_KEY}  # 支持环境变量替换
   temperature: 0.7
   maxTokens: 4096
@@ -212,7 +219,7 @@ Markdown 文件
     ↓
 [解析层]        remark → MDAST → ContentBlocks
     ↓
-[策略层]        LLM (Gemini/OpenAI/Claude) → 标题、摘要、标签、卡片计划
+[策略层]        LLM (Gemini/OpenAI/Claude/SiliconFlow) → 标题、摘要、标签、卡片计划
     ↓
 [生成层]        React SSR → HTML → Playwright 截图 → 1080×1440 PNG
     ↓
@@ -288,7 +295,7 @@ commit message 包含 `[deploy]` 时，GitHub Actions 自动 SSH 到服务器拉
 - **Playwright** (headless Chromium 截图)
 - **unified/remark** (Markdown 解析 + rehype HTML 渲染)
 - **Shiki** (语法高亮)
-- **Gemini / OpenAI / Anthropic** (内容策略)
+- **Gemini / OpenAI / Anthropic / SiliconFlow** (内容策略)
 - **Zod** (配置验证)
 - **Commander.js** (CLI)
 - **Docker** (容器化部署)
