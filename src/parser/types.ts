@@ -1,6 +1,7 @@
 export interface ParsedDocument {
   frontmatter: Record<string, unknown>;
   title: string;
+  coverText?: string;
   contentBlocks: ContentBlock[];
   images: ImageReference[];
   metadata: {

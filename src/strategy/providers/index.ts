@@ -18,7 +18,7 @@ const DEFAULT_MODELS: Record<string, string> = {
   gemini: 'gemini-2.5-flash',
   openai: 'gpt-4o',
   anthropic: 'claude-sonnet-4-20250514',
-  siliconflow: 'Pro/MiniMaxAI/MiniMax-M2.5',
+  siliconflow: 'Qwen/Qwen3-30B-A3B-Instruct-2507',
 };
 
 const ENV_KEY_MAP: Record<string, string> = {

@@ -43,10 +43,14 @@ export async function runCommand(
     if (checkHasApiKey(config)) {
       logger.info('Step 2/4: 生成内容策略 (LLM)');
       strategy = await generateStrategy(doc, config);
-      await writeFile(resolve(outputDir, 'strategy.json'), JSON.stringify(strategy, null, 2));
-
-      logger.info('Step 3/4: 生成图片卡片');
-      paths = await generateFromStrategy(doc, strategy, { outputDir, theme: themeName, maxCards });
+      if (strategy) {
+        await writeFile(resolve(outputDir, 'strategy.json'), JSON.stringify(strategy, null, 2));
+        logger.info('Step 3/4: 生成图片卡片');
+        paths = await generateFromStrategy(doc, strategy, { outputDir, theme: themeName, maxCards });
+      } else {
+        logger.info('Step 3/4: 生成图片卡片 (fallback 直接模式)');
+        paths = await generateImages(doc, { outputDir, theme: themeName, maxCards });
+      }
     } else {
       logger.info('Step 2/4: 跳过 LLM 策略 (未设置 GEMINI_API_KEY)');
       logger.info('Step 3/4: 生成图片卡片 (直接模式)');

@@ -12,7 +12,7 @@ export function buildStrategyPrompt(doc: ParsedDocument, config: Md2RedConfig, f
 - 标题：${doc.title}
 - 总字数：${doc.metadata.wordCount}
 - 内容块数：${doc.contentBlocks.length}
-- 包含代码：${doc.metadata.hasCodeBlocks ? '是' : '否'}
+- 包含代码：${doc.metadata.hasCodeBlocks ? '是' : '否'}${doc.coverText ? `\n- 封面文案：${doc.coverText}` : ''}
 
 ## 内容块概览
 ${blockSummary}
@@ -92,7 +92,7 @@ ${config.content.style === 'technical' ? '技术干货向，专业但易懂' : c
 2. summary：≤1000 字的小红书正文，不要 Emoji 堆叠（最多 3-5 个点缀），末尾有自然的互动引导
 3. tags：5-10 个标签，混合大类标签和具体标签
 4. cardPlan：${config.content.minCards}-${config.content.maxCards} 张卡片（含封面和总结页）
-   - index=0 必须是 cover 类型
+   - index=0 必须是 cover 类型${doc.coverText ? '，封面副标题/bodyText 应基于文档提供的封面文案' : ''}
    - 最后一张必须是 summary 类型
    - 包含代码的块用 type="code"，layoutHint="code-focused"
    - 代码块的 sourceBlockIndex 指向原始 contentBlocks 的索引

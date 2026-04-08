@@ -48,12 +48,17 @@ route('POST', '/api/generate', async (req, res) => {
           // Step 2: LLM Strategy
           updateTask(task.id, { step: 2, total: 4, message: '生成内容策略 (LLM)...' });
           strategy = await generateStrategy(doc, config);
-          await mkdir(outputDir, { recursive: true });
-          await writeFile(resolve(outputDir, 'strategy.json'), JSON.stringify(strategy, null, 2));
 
-          // Step 3: Generate images
-          updateTask(task.id, { step: 3, total: 4, message: '渲染图片卡片...' });
-          paths = await generateFromStrategy(doc, strategy, { outputDir, theme: themeName, maxCards: cards });
+          if (strategy) {
+            await mkdir(outputDir, { recursive: true });
+            await writeFile(resolve(outputDir, 'strategy.json'), JSON.stringify(strategy, null, 2));
+            // Step 3: Generate images
+            updateTask(task.id, { step: 3, total: 4, message: '渲染图片卡片...' });
+            paths = await generateFromStrategy(doc, strategy, { outputDir, theme: themeName, maxCards: cards });
+          } else {
+            updateTask(task.id, { step: 3, total: 4, message: '渲染图片卡片 (fallback 直接模式)...' });
+            paths = await generateImages(doc, { outputDir, theme: themeName, maxCards: cards });
+          }
         } else {
           updateTask(task.id, { step: 2, total: 4, message: '跳过 LLM 策略' });
 

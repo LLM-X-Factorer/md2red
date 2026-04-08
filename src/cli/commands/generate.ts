@@ -26,12 +26,15 @@ export async function generateCommand(
     if (opts.strategy) {
       const strategy = await generateStrategy(doc, config);
 
-      // Save strategy to output
-      const strategyPath = resolve(outputDir, 'strategy.json');
-      await writeFile(strategyPath, JSON.stringify(strategy, null, 2));
-      logger.info(`策略已保存: ${strategyPath}`);
-
-      paths = await generateFromStrategy(doc, strategy, { outputDir, theme: themeName, maxCards });
+      if (strategy) {
+        const strategyPath = resolve(outputDir, 'strategy.json');
+        await writeFile(strategyPath, JSON.stringify(strategy, null, 2));
+        logger.info(`策略已保存: ${strategyPath}`);
+        paths = await generateFromStrategy(doc, strategy, { outputDir, theme: themeName, maxCards });
+      } else {
+        logger.info('策略生成失败，使用直接模式');
+        paths = await generateImages(doc, { outputDir, theme: themeName, maxCards });
+      }
     } else {
       logger.info(`生成图片到: ${outputDir}`);
       paths = await generateImages(doc, { outputDir, theme: themeName, maxCards });

@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { parseMarkdown } from './index.js';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { writeFile, unlink } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SAMPLE = join(__dirname, '..', '..', 'examples', 'sample-article.md');
@@ -52,5 +54,64 @@ describe('parseMarkdown', () => {
       // textContent should NOT contain the code itself
       assert.ok(!codeBlock.textContent.includes('npm install'), 'textContent should not contain code');
     }
+  });
+});
+
+describe('cover text extraction', () => {
+  const tmpFile = join(tmpdir(), `md2red-test-cover-${Date.now()}.md`);
+
+  it('extracts coverText when first H2 is "封面"', async () => {
+    const md = `# 测试标题
+
+## 封面
+
+AI 不是随机引用的。它有一套选人标准。
+
+知道这 5 个信号，你的内容被引用的概率会大不一样。
+
+## 信号一：内容匹配度
+
+这是第一个信号的内容。
+`;
+    await writeFile(tmpFile, md, 'utf-8');
+    const doc = await parseMarkdown(tmpFile);
+
+    assert.ok(doc.coverText, 'coverText should be set');
+    assert.ok(doc.coverText!.includes('AI 不是随机引用的'), 'coverText should contain cover content');
+    // "封面" block should be removed from contentBlocks
+    assert.ok(
+      !doc.contentBlocks.some((b) => b.heading === '封面'),
+      'contentBlocks should not contain "封面" block',
+    );
+    // Other content should still be present
+    assert.ok(doc.contentBlocks.length > 0, 'contentBlocks should not be empty');
+    assert.ok(
+      doc.contentBlocks.some((b) => b.textContent.includes('信号一')),
+      'contentBlocks should still contain other sections',
+    );
+    await unlink(tmpFile);
+  });
+
+  it('does not extract coverText when first H2 is not "封面"', async () => {
+    const md = `# 测试标题
+
+## 第一章
+
+普通内容。
+
+## 第二章
+
+更多内容。
+`;
+    await writeFile(tmpFile, md, 'utf-8');
+    const doc = await parseMarkdown(tmpFile);
+
+    assert.equal(doc.coverText, undefined, 'coverText should be undefined');
+    assert.ok(doc.contentBlocks.length >= 1, 'Should have content blocks');
+    assert.ok(
+      doc.contentBlocks.some((b) => b.textContent.includes('第一章')),
+      'First H2 content should remain',
+    );
+    await unlink(tmpFile);
   });
 });

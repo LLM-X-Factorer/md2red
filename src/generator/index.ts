@@ -98,10 +98,11 @@ export async function generateImages(
 
   // 1. Cover
   const coverPath = join(outputDir, '01-cover.png');
+  const coverSubtitle = doc.coverText || `共 ${doc.metadata.wordCount} 字 · ${doc.contentBlocks.length} 个章节`;
   await renderReactCard(
     React.createElement(CoverCard, {
       theme, title: doc.title,
-      subtitle: `共 ${doc.metadata.wordCount} 字 · ${doc.contentBlocks.length} 个章节`,
+      subtitle: coverSubtitle,
     }),
     coverPath,
   );

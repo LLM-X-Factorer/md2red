@@ -1,5 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import { tryRepairJson } from './index.js';
 
 describe('strategy JSON parsing', () => {
   it('parses valid strategy JSON', () => {
@@ -33,6 +34,52 @@ describe('strategy JSON parsing', () => {
   it('handles extra whitespace and newlines', () => {
     const raw = '  \n  {"titles":["A"],"summary":"B","tags":[],"cardPlan":[]}  \n  ';
     const parsed = JSON.parse(raw.trim());
+    assert.deepEqual(parsed.titles, ['A']);
+  });
+});
+
+describe('tryRepairJson', () => {
+  it('returns valid JSON as-is', () => {
+    const json = '{"titles":["A"],"summary":"B","tags":[],"cardPlan":[]}';
+    const result = tryRepairJson(json);
+    assert.ok(result);
+    assert.deepEqual(JSON.parse(result), JSON.parse(json));
+  });
+
+  it('strips markdown code blocks', () => {
+    const raw = '```json\n{"titles":["T1"],"summary":"S","tags":[],"cardPlan":[]}\n```';
+    const result = tryRepairJson(raw);
+    assert.ok(result);
+    assert.deepEqual(JSON.parse(result!).titles, ['T1']);
+  });
+
+  it('repairs truncated JSON with missing closing braces', () => {
+    const raw = '{"titles":["A","B"],"summary":"S","tags":["t1"],"cardPlan":[{"index":0,"type":"cover","title":"T","bodyText":"B","layoutHint":"cover-style"}';
+    const result = tryRepairJson(raw);
+    assert.ok(result);
+    const parsed = JSON.parse(result!);
+    assert.deepEqual(parsed.titles, ['A', 'B']);
+    assert.equal(parsed.cardPlan[0].type, 'cover');
+  });
+
+  it('repairs JSON truncated mid-string value', () => {
+    const raw = '{"titles":["A"],"summary":"This is a long summary that got tru';
+    const result = tryRepairJson(raw);
+    assert.ok(result);
+    const parsed = JSON.parse(result!);
+    assert.deepEqual(parsed.titles, ['A']);
+  });
+
+  it('returns null for completely broken content', () => {
+    const result = tryRepairJson('not json at all');
+    assert.equal(result, null);
+  });
+
+  it('repairs truncated JSON with trailing comma', () => {
+    const raw = '{"titles":["A"],"tags":["t1","t2"],';
+    const result = tryRepairJson(raw);
+    assert.ok(result);
+    const parsed = JSON.parse(result!);
     assert.deepEqual(parsed.titles, ['A']);
   });
 });

@@ -9,7 +9,7 @@ import type { Root, Heading, Yaml } from 'mdast';
 import { splitIntoBlocks } from './splitter.js';
 import { downloadImage } from '../utils/image.js';
 import { logger } from '../utils/logger.js';
-import type { ParsedDocument, ImageReference } from './types.js';
+import type { ParsedDocument, ContentBlock, ImageReference } from './types.js';
 
 export type { ParsedDocument, ContentBlock, CodeSnippet, ImageReference } from './types.js';
 
@@ -25,7 +25,11 @@ export async function parseMarkdown(filePath: string): Promise<ParsedDocument> {
 
   const frontmatter = extractFrontmatter(tree);
   const title = extractTitle(tree, frontmatter);
+
+  // Extract cover text: if first H2 is "封面", extract body and remove from tree
+  const coverText = extractCoverText(tree);
   const contentBlocks = splitIntoBlocks(tree);
+
   const images = collectImages(contentBlocks);
 
   // Resolve image paths and download remote images
@@ -37,6 +41,7 @@ export async function parseMarkdown(filePath: string): Promise<ParsedDocument> {
   return {
     frontmatter,
     title,
+    coverText,
     contentBlocks,
     images,
     metadata: {
@@ -87,6 +92,38 @@ function extractTitle(tree: Root, frontmatter: Record<string, unknown>): string 
     (n) => n.type === 'heading' && (n as Heading).depth === 1,
   ) as Heading | undefined;
   return h1 ? toString(h1) : 'Untitled';
+}
+
+const COVER_KEYWORDS = ['封面'];
+
+function extractCoverText(tree: Root): string | undefined {
+  const children = tree.children;
+
+  // Find the first H2 heading
+  const h2Index = children.findIndex(
+    (n) => n.type === 'heading' && (n as Heading).depth === 2,
+  );
+  if (h2Index < 0) return undefined;
+
+  const h2 = children[h2Index] as Heading;
+  const headingText = toString(h2).trim();
+  if (!COVER_KEYWORDS.includes(headingText)) return undefined;
+
+  // Collect all nodes between this H2 and the next H2 (or end)
+  const bodyNodes: string[] = [];
+  let endIndex = h2Index + 1;
+  while (endIndex < children.length) {
+    const node = children[endIndex];
+    if (node.type === 'heading' && (node as Heading).depth === 2) break;
+    bodyNodes.push(toString(node));
+    endIndex++;
+  }
+
+  // Remove the cover H2 and its body nodes from the tree
+  tree.children.splice(h2Index, endIndex - h2Index);
+
+  const body = bodyNodes.join('\n').trim();
+  return body || undefined;
 }
 
 function collectImages(blocks: Array<{ images?: ImageReference[] }>): ImageReference[] {
