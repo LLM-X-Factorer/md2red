@@ -1,5 +1,5 @@
 import { resolve, basename } from 'node:path';
-import { writeFile, readFile } from 'node:fs/promises';
+import { writeFile, readFile, mkdir } from 'node:fs/promises';
 import { parseMarkdown } from '../../parser/index.js';
 import { generateImages, generateFromStrategy } from '../../generator/index.js';
 import { generateStrategy } from '../../strategy/index.js';
@@ -44,6 +44,7 @@ export async function runCommand(
       logger.info('Step 2/4: 生成内容策略 (LLM)');
       strategy = await generateStrategy(doc, config);
       if (strategy) {
+        await mkdir(outputDir, { recursive: true });
         await writeFile(resolve(outputDir, 'strategy.json'), JSON.stringify(strategy, null, 2));
         logger.info('Step 3/4: 生成图片卡片');
         paths = await generateFromStrategy(doc, strategy, { outputDir, theme: themeName, maxCards });

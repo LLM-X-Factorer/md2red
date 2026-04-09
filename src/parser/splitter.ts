@@ -27,6 +27,10 @@ function splitByH2(nodes: Content[]): Content[][] {
   let current: Content[] = [];
 
   for (const node of nodes) {
+    // Skip YAML frontmatter and H1 — already extracted by parser
+    if (node.type === 'yaml') continue;
+    if (node.type === 'heading' && (node as Heading).depth === 1) continue;
+
     if (node.type === 'heading' && (node as Heading).depth === 2) {
       if (current.length > 0) sections.push(current);
       current = [node];

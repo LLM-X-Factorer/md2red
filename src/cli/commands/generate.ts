@@ -1,5 +1,5 @@
 import { resolve, basename } from 'node:path';
-import { writeFile } from 'node:fs/promises';
+import { writeFile, mkdir } from 'node:fs/promises';
 import { parseMarkdown } from '../../parser/index.js';
 import { generateImages, generateFromStrategy } from '../../generator/index.js';
 import { generateStrategy } from '../../strategy/index.js';
@@ -27,6 +27,7 @@ export async function generateCommand(
       const strategy = await generateStrategy(doc, config);
 
       if (strategy) {
+        await mkdir(outputDir, { recursive: true });
         const strategyPath = resolve(outputDir, 'strategy.json');
         await writeFile(strategyPath, JSON.stringify(strategy, null, 2));
         logger.info(`策略已保存: ${strategyPath}`);

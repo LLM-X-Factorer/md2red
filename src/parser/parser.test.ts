@@ -114,4 +114,38 @@ AI 不是随机引用的。它有一套选人标准。
     );
     await unlink(tmpFile);
   });
+
+  it('does not leak frontmatter YAML into content blocks', async () => {
+    const md = `---
+title: "AI决定引用谁的5个信号"
+tags: [GEO优化, AI搜索]
+---
+
+# AI决定引用谁的5个信号
+
+## 封面
+
+AI 不是随机引用的。
+
+## 信号一
+
+第一个信号的内容。
+`;
+    await writeFile(tmpFile, md, 'utf-8');
+    const doc = await parseMarkdown(tmpFile);
+
+    // No block should contain raw frontmatter text
+    for (const block of doc.contentBlocks) {
+      assert.ok(
+        !block.textContent.includes('tags:'),
+        `Block "${block.heading}" should not contain frontmatter YAML`,
+      );
+    }
+    // H1 title should not appear as a content block heading
+    assert.ok(
+      !doc.contentBlocks.some((b) => b.heading === 'AI决定引用谁的5个信号'),
+      'H1 title should not appear as content block heading',
+    );
+    await unlink(tmpFile);
+  });
 });
