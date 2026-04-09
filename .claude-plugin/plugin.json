@@ -1,0 +1,21 @@
+{
+  "name": "md2red",
+  "description": "Convert Markdown documents to Xiaohongshu (RED) style carousel image cards with LLM-powered content strategy, interactive preview, and one-click export",
+  "version": "0.5.1",
+  "author": {
+    "name": "LLM-X-Factorer",
+    "email": "llm-x-factorer@users.noreply.github.com"
+  },
+  "homepage": "https://github.com/LLM-X-Factorer/md2red",
+  "repository": "https://github.com/LLM-X-Factorer/md2red",
+  "license": "MIT",
+  "keywords": [
+    "markdown",
+    "xiaohongshu",
+    "red",
+    "image-cards",
+    "content-creation",
+    "social-media",
+    "carousel"
+  ]
+}
