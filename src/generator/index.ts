@@ -39,11 +39,13 @@ export async function generateFromStrategy(
     const idx = String(card.index + 1).padStart(2, '0');
     const outPath = join(outputDir, `${idx}-${card.type}.png`);
     const pageNum = `${card.index + 1} / ${total}`;
+    const title = card.title || '';
+    const body = card.bodyText || '';
 
     if (card.type === 'cover') {
       await renderReactCard(
         React.createElement(CoverCard, {
-          theme, title: card.title, subtitle: card.bodyText,
+          theme, title, subtitle: body,
           tags: strategy.tags.slice(0, 4),
         }),
         outPath,
@@ -53,25 +55,25 @@ export async function generateFromStrategy(
       const codeHtml = await highlightCode(code, card.codeSnippet.language, isDark);
       await renderReactCard(
         React.createElement(CodeCard, {
-          theme, heading: card.title,
-          description: card.bodyText.slice(0, 150),
+          theme, heading: title,
+          description: body.slice(0, 150),
           language: card.codeSnippet.language, codeHtml, pageNum,
         }),
         outPath,
       );
     } else if (card.type === 'summary') {
-      const points = card.bodyText.split('\n').filter((l) => l.trim());
+      const points = body.split('\n').filter((l) => l.trim());
       await renderReactCard(
         React.createElement(SummaryCard, {
-          theme, heading: card.title, points, cta: '关注我获取更多技术干货 👋',
+          theme, heading: title, points, cta: '关注我获取更多技术干货 👋',
         }),
         outPath,
       );
     } else {
       await renderReactCard(
         React.createElement(ContentCard, {
-          theme, heading: card.title,
-          bodyHtml: textToHtml(card.bodyText), pageNum,
+          theme, heading: title,
+          bodyHtml: textToHtml(body), pageNum,
         }),
         outPath,
       );

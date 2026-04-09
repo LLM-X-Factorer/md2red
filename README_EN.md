@@ -9,8 +9,8 @@ Transform Markdown documents into Xiaohongshu (RED) style carousel image cards. 
 - **Syntax Highlighting** — Shiki-powered code highlighting with Catppuccin themes (dark/light)
 - **Markdown Rendering** — Lists, bold, italic, inline code rendered via remark-rehype pipeline
 - **Multi-LLM Strategy** — Gemini, OpenAI, Anthropic, or SiliconFlow for generating XHS-style titles, summaries, tags, and card plans; auto-repairs truncated JSON with retry and graceful fallback to direct mode
-- **Interactive Preview** — Browser-based editor: drag-sort cards, delete cards, edit title/summary/tags
-- **Export Package** — Download zip with all card images + copytext file for manual posting to any platform
+- **Interactive Preview** — Browser-based editor: drag-sort cards, delete cards, edit title/summary/tags, one-click copy to clipboard
+- **Export Package** — Download zip with all card images + copytext file (tags auto-formatted as `#tag#` for XHS) for manual posting
 - **Dark & Light Themes** — Two built-in color schemes
 - **State Tracking** — Generation history with duplicate detection (SHA256 hash)
 - **Web Console** — Light-themed Vite + React + Tailwind browser dashboard with export and history management
@@ -85,7 +85,7 @@ md2red generate my-article.md --cards 6    # Limit to 6 cards
 md2red generate my-article.md -o ./output  # Custom output directory
 ```
 
-Output goes to `md2red-output/<article-name>/` by default.
+Output goes to `md2red-output/<article-name>/` by default, including image cards, `strategy.json`, and `preview.html`.
 
 ### Step 3: Preview and Edit
 
@@ -93,11 +93,11 @@ Output goes to `md2red-output/<article-name>/` by default.
 md2red preview md2red-output/my-article/
 ```
 
-Interactive editor in the browser: browse cards, drag-sort, delete, edit title/summary/tags.
+Interactive editor in the browser: browse cards, drag-sort, delete, edit title/summary/tags, one-click copy to clipboard.
 
 ### Step 4: Export
 
-Click **"Export images + copytext"** in the preview page to download a zip with all images and copytext for manual posting.
+Click **"Copy all"** to copy title + summary + tags to clipboard (ready to paste into XHS), or **"Export images + copytext"** to download a zip.
 
 ### One-Command Pipeline
 
@@ -189,6 +189,7 @@ images:
 
 content:
   maxCards: 9
+  minCards: 5                # auto-supplements cards if LLM generates too few
   targetAudience: tech developers
   style: technical           # technical | casual | mixed
 ```

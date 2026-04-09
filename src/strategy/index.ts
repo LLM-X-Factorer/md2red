@@ -117,14 +117,14 @@ export async function generateStrategy(
     }
 
     // Normalize
-    return normalizeStrategy(parsed, doc);
+    return normalizeStrategy(parsed, doc, config);
   }
 
   logger.warn('策略生成失败，将 fallback 到直接模式');
   return null;
 }
 
-function normalizeStrategy(parsed: ContentStrategy, doc: ParsedDocument): ContentStrategy {
+function normalizeStrategy(parsed: ContentStrategy, doc: ParsedDocument, config: Md2RedConfig): ContentStrategy {
   // Normalize titles: ensure array, add doc.title as fallback
   if (!Array.isArray(parsed.titles) || parsed.titles.length === 0) {
     parsed.titles = [doc.title];
@@ -147,6 +147,46 @@ function normalizeStrategy(parsed: ContentStrategy, doc: ParsedDocument): Conten
         card.codeSnippet = block.codeSnippets[0];
       }
     }
+  }
+
+  // Enforce minCards: supplement with uncovered content blocks if too few
+  const { minCards } = config.content;
+  if (parsed.cardPlan.length < minCards && doc.contentBlocks.length > 0) {
+    logger.warn(`LLM 生成了 ${parsed.cardPlan.length} 张卡片，少于 minCards(${minCards})，补充内容块`);
+
+    const coveredIndices = new Set(
+      parsed.cardPlan
+        .filter((c) => c.sourceBlockIndex != null)
+        .map((c) => c.sourceBlockIndex!),
+    );
+
+    // Find the insert position: before the last card if it's a summary, otherwise at the end
+    const lastCard = parsed.cardPlan[parsed.cardPlan.length - 1];
+    const insertBeforeSummary = lastCard?.type === 'summary';
+
+    for (let i = 0; i < doc.contentBlocks.length && parsed.cardPlan.length < minCards; i++) {
+      if (coveredIndices.has(i)) continue;
+      const block = doc.contentBlocks[i];
+      const newCard: CardPlan = {
+        index: 0, // re-indexed below
+        type: block.codeSnippets?.length ? 'code' : 'content',
+        title: block.heading || '',
+        bodyText: block.textContent.slice(0, 200),
+        layoutHint: block.codeSnippets?.length ? 'code-focused' : 'text-heavy',
+        sourceBlockIndex: i,
+      };
+      if (newCard.type === 'code' && block.codeSnippets?.length) {
+        newCard.codeSnippet = block.codeSnippets[0];
+      }
+      if (insertBeforeSummary) {
+        parsed.cardPlan.splice(parsed.cardPlan.length - 1, 0, newCard);
+      } else {
+        parsed.cardPlan.push(newCard);
+      }
+    }
+
+    // Re-index all cards
+    parsed.cardPlan.forEach((c, i) => { c.index = i; });
   }
 
   logger.success(`策略生成完成: ${parsed.titles.length} 个标题, ${parsed.cardPlan.length} 张卡片`);

@@ -19,6 +19,7 @@ export default function Preview() {
   const [imageOrder, setImageOrder] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const isDir = taskId.includes('/');
@@ -56,6 +57,16 @@ export default function Preview() {
     setTagInput('');
   };
 
+  const copyAll = async () => {
+    const tagStr = tags.map((t) => `#${t}#`).join(' ');
+    const text = `${title}\n\n${summary}\n\n${tagStr}`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
+    } catch { /* clipboard not available */ }
+  };
+
   const savePlan = async () => {
     setSaving(true);
     setSaved(false);
@@ -79,6 +90,9 @@ export default function Preview() {
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold">预览编辑</h2>
         <div className="flex gap-3">
+          <button onClick={copyAll} className="px-5 py-2 bg-gray-600 hover:bg-gray-500 rounded-lg text-white text-sm font-medium transition-colors">
+            {copied ? '已复制 ✓' : '一键复制文案'}
+          </button>
           <a
             href={taskId.includes('/') ? `/api/export-dir?dir=${encodeURIComponent(taskId)}` : `/api/export/${taskId}`}
             className="px-5 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-white text-sm font-medium transition-colors"
@@ -136,7 +150,7 @@ export default function Preview() {
             <div className="flex flex-wrap gap-1.5 mb-2">
               {tags.map((t, i) => (
                 <span key={i} className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-indigo-50 text-indigo-600 rounded-full text-xs">
-                  #{t}
+                  #{t}#
                   <button onClick={() => setTags(tags.filter((_, j) => j !== i))} className="opacity-50 hover:opacity-100">&times;</button>
                 </span>
               ))}

@@ -1,6 +1,6 @@
 {
   "name": "md2red",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Markdown to Xiaohongshu (RED) image card generator",
   "type": "module",
   "bin": {

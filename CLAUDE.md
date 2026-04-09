@@ -51,7 +51,12 @@ scripts/                部署脚本
 ## 关键行为
 
 - **封面 H2 提取**：parser 检测第一个 H2 标题为"封面"时，将其内容提取为 `coverText` 并从 contentBlocks 中移除，用作封面卡片副标题
-- **LLM 策略容错**：`generateStrategy()` 返回 `ContentStrategy | null`。截断 JSON 会尝试自动修复（`tryRepairJson`），失败后重试 1 次，仍失败则返回 `null`，调用方 fallback 到直接模式
+- **LLM 策略容错**：`generateStrategy()` 返回 `ContentStrategy | null`。截断 JSON 会尝试自动修复（`tryRepairJson`），失败后重试 1 次，仍失败则返回 `null`，调用方 fallback 到直接模式。`generateFromStrategy()` 渲染失败也会 fallback 到直接模式
+- **minCards 后处理**：LLM 返回的卡片数少于 `minCards` 时，`normalizeStrategy` 自动补充未覆盖的内容块
+- **策略字段防御**：`generateFromStrategy` 对 `card.title` 和 `card.bodyText` 做 `|| ''` 防御，避免 LLM 返回字段缺失导致崩溃
+- **generate 命令生成预览**：`generate` 和 `run` 命令都会生成 `preview.html`
+- **标签格式**：导出和预览中标签统一使用小红书 `#标签#` 格式（双井号闭合）
+- **一键复制文案**：CLI preview.html 和 Web Preview 页面都有「一键复制文案」按钮，合成 标题+正文+#标签# 纯文本到剪贴板
 - **默认模型**：SiliconFlow 默认 `Qwen/Qwen3-30B-A3B-Instruct-2507`（速度快、约束遵从好、成本低）
 
 ## 开发模式

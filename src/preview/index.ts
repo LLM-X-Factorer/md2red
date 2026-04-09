@@ -111,6 +111,7 @@ section{background:#161616;border-radius:10px;padding:16px}
   <h1>md2red 预览</h1>
   <div class="actions">
     <button class="btn-secondary" onclick="window.close()">关闭</button>
+    <button class="btn-secondary" onclick="copyAll()">一键复制文案</button>
     <button class="btn-confirm" onclick="exportPlan()">确认方案</button>
   </div>
 </div>
@@ -235,6 +236,15 @@ function removeCard(i) {
   imageOrder.splice(i, 1);
   if (current >= imageOrder.length) current = imageOrder.length - 1;
   renderCards(); renderSortable();
+}
+
+// --- Copy All ---
+function copyAll() {
+  const title = getSelectedTitle();
+  const summary = document.getElementById('summaryBox').value;
+  const tagStr = currentTags.map(t => '#' + t + '#').join(' ');
+  const text = title + '\\n\\n' + summary + '\\n\\n' + tagStr;
+  navigator.clipboard.writeText(text).then(() => showToast('已复制到剪贴板')).catch(() => showToast('复制失败'));
 }
 
 // --- Export ---

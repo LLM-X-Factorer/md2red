@@ -41,7 +41,7 @@ route('GET', '/api/export/:taskId', async (_req, res, params) => {
       `正文：`,
       summary,
       '',
-      `标签：${tags.map((t) => '#' + t).join(' ')}`,
+      `标签：${tags.map((t) => `#${t}#`).join(' ')}`,
     ].join('\n');
 
     // Get image files
@@ -106,7 +106,7 @@ route('GET', '/api/export-dir', async (req, res) => {
       `正文：`,
       summary,
       '',
-      `标签：${tags.map((t) => '#' + t).join(' ')}`,
+      `标签：${tags.map((t) => `#${t}#`).join(' ')}`,
     ].join('\n');
 
     const files = await readdir(outputDir);

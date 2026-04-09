@@ -54,7 +54,12 @@ route('POST', '/api/generate', async (req, res) => {
             await writeFile(resolve(outputDir, 'strategy.json'), JSON.stringify(strategy, null, 2));
             // Step 3: Generate images
             updateTask(task.id, { step: 3, total: 4, message: '渲染图片卡片...' });
-            paths = await generateFromStrategy(doc, strategy, { outputDir, theme: themeName, maxCards: cards });
+            try {
+              paths = await generateFromStrategy(doc, strategy, { outputDir, theme: themeName, maxCards: cards });
+            } catch (renderErr) {
+              updateTask(task.id, { step: 3, total: 4, message: '策略渲染失败，fallback 直接模式...' });
+              paths = await generateImages(doc, { outputDir, theme: themeName, maxCards: cards });
+            }
           } else {
             updateTask(task.id, { step: 3, total: 4, message: '渲染图片卡片 (fallback 直接模式)...' });
             paths = await generateImages(doc, { outputDir, theme: themeName, maxCards: cards });

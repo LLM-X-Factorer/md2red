@@ -47,7 +47,12 @@ export async function runCommand(
         await mkdir(outputDir, { recursive: true });
         await writeFile(resolve(outputDir, 'strategy.json'), JSON.stringify(strategy, null, 2));
         logger.info('Step 3/4: 生成图片卡片');
-        paths = await generateFromStrategy(doc, strategy, { outputDir, theme: themeName, maxCards });
+        try {
+          paths = await generateFromStrategy(doc, strategy, { outputDir, theme: themeName, maxCards });
+        } catch (renderErr) {
+          logger.warn(`策略渲染失败: ${(renderErr as Error).message}，fallback 到直接模式`);
+          paths = await generateImages(doc, { outputDir, theme: themeName, maxCards });
+        }
       } else {
         logger.info('Step 3/4: 生成图片卡片 (fallback 直接模式)');
         paths = await generateImages(doc, { outputDir, theme: themeName, maxCards });
