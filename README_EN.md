@@ -225,6 +225,55 @@ docker compose build && docker compose up -d
 echo "MD2RED_PASSWORD=your-password" >> .env
 ```
 
+## Why no auto-publishing? (for folks asking about XHS bot-detection bypass)
+
+md2red used to ship a `publisher` module (v0.2.x) with a full anti-detection stack. We removed it in v0.3.0 because **XHS uses post-hoc auditing that defeats every real-time bypass we tried**. The project is now generation-only: produce the cards, export the zip, post manually.
+
+We're publishing the full writeup so other developers don't burn time on the same approach.
+
+### What we tried (src/publisher/, deleted — available in git history)
+
+- **CDP connection mode** — Launch Chrome as a standalone process, then connect Playwright via Chrome DevTools Protocol (`connectOverCDP`) instead of letting Playwright launch it. This avoids the automation markers Playwright injects at launch (`--enable-automation`, `window.__playwright`, etc.)
+- **Comprehensive stealth injection** (via `addInitScript` on every page):
+  - `navigator.webdriver` set to `undefined` (not `false`)
+  - Realistic `window.chrome.runtime / loadTimes / csi / app` shape
+  - Populated `navigator.plugins` (Chrome PDF Plugin / Viewer / Native Client)
+  - `navigator.languages = ['zh-CN', 'zh', 'en-US', 'en']`, `platform = 'MacIntel'`
+  - `hardwareConcurrency = 8`, `deviceMemory = 8`, `connection.effectiveType = '4g'`
+  - WebGL vendor/renderer spoofed to `Intel Inc. / Intel Iris OpenGL Engine`
+  - `screen` dimensions aligned with viewport
+  - Removed `window.__playwright`, `window.__pw_manual` residues
+- **Rotating user agents + Chinese locale/timezone** — Cycling between macOS/Windows × Chrome 130/131, `locale: zh-CN`, `timezoneId: Asia/Shanghai`
+- **Human-behavior simulation** — Variable typing cadence (30-150ms inter-key + 5% long-pause chance), randomized click offsets (±40% from element center), multi-step mouse movement (5-15 steps), progressive scroll (3-7 steps)
+- **Manual cookie import** — Skip the login flow on servers entirely, to avoid triggering login-time bot detection
+
+Want to see the actual code:
+
+```bash
+git show 316a342:src/publisher/stealth.ts          # full stealth injection
+git show 316a342:src/publisher/xhs-browser.ts      # CDP connection mode
+git show bca59eb^:src/publisher/human-behavior.ts  # human-behavior simulation
+git show bca59eb^:src/publisher/xhs-publish.ts     # publish pipeline
+```
+
+### What actually happened (our test account, 2026-03)
+
+1. The publish flow itself worked — nothing blocked in real time
+2. Within **~24 hours** the account was flagged as "AI bot" by XHS's post-hoc audit
+3. **3 days** after publishing, the account received a **10-day ban**
+
+### Why every bypass strategy fails here
+
+XHS doesn't only inspect you at publish time. The platform audits accounts continuously on behavioral signals — posting cadence, content fingerprints, consistency of the user persona, interaction patterns, multi-account device fingerprints, etc. **Passing client-side stealth ≠ account survival.** That's the "post-hoc bookkeeping" model: nothing pops at publish, the bill arrives 24-72 hours later.
+
+No amount of per-request stealth addresses this. The platform is looking at long-term behavioral curves, not individual requests.
+
+### Recommendations
+
+- Don't use valuable accounts for automated publishing
+- Spend the effort on **high-quality card generation** (that's what md2red is for) and publish manually
+- If you must automate, expect account lifetimes to be measured in weeks and treat accounts as disposable
+
 ## License
 
 MIT

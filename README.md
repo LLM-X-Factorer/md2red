@@ -311,6 +311,55 @@ npm run test:e2e      # E2E 测试
 npm run test:all      # 全部测试
 ```
 
+## 为什么不做自动发布？（给想绕过 XHS 机器人检测的朋友）
+
+md2red 曾经有 publisher 模块（v0.2.x），试过一整套反检测方案。最终结论：**XHS 的秋后算账（post-hoc 审计）机制让所有实时绕过手段失效**，所以 v0.3.0 彻底移除了自动发布，转为纯图片生成工具，导出后手动发布。
+
+我们把曾经做过的事情完整公开，免得其他开发者重复踩坑。
+
+### 曾经试过的反检测方案（src/publisher/，已删除，可在 git 历史查看）
+
+- **CDP 连接模式** — Chrome 作为独立进程启动，Playwright 通过 Chrome DevTools Protocol (`connectOverCDP`) 连接，而不是由 Playwright 直接 launch。这样可以避免 Playwright 启动过程中注入的 `--enable-automation`、`window.__playwright` 等自动化标记
+- **全面的 stealth 注入**（`addInitScript` 注入到每个 page）：
+  - `navigator.webdriver` 设为 `undefined`（不是 `false`）
+  - 伪造 `window.chrome.runtime / loadTimes / csi / app` 结构
+  - 补全 `navigator.plugins`（Chrome PDF Plugin / Viewer / Native Client）
+  - `navigator.languages = ['zh-CN', 'zh', 'en-US', 'en']`、`platform = 'MacIntel'`
+  - `hardwareConcurrency = 8`、`deviceMemory = 8`、`connection.effectiveType = '4g'`
+  - WebGL vendor/renderer 伪造为 `Intel Inc. / Intel Iris OpenGL Engine`
+  - `screen` 尺寸对齐 viewport
+  - 删除 `window.__playwright`、`window.__pw_manual` 残留
+- **随机 User-Agent + 中文 locale/timezone** — 在 macOS/Windows × Chrome 130/131 组合间轮换，`locale: zh-CN`、`timezoneId: Asia/Shanghai`
+- **人类行为模拟** — 可变速率打字（30-150ms 键间延迟 + 5% 概率长停顿）、随机点击位置（元素中心 ±40%）、渐进鼠标移动（5-15 steps）、渐进滚动（3-7 steps）
+- **手动 cookie 导入** — 服务端跳过登录流程，避免触发登录时的反机器人检测
+
+想看具体代码：
+
+```bash
+git show 316a342:src/publisher/stealth.ts          # 全套 stealth 注入
+git show 316a342:src/publisher/xhs-browser.ts      # CDP 连接模式
+git show bca59eb^:src/publisher/human-behavior.ts  # 人类行为模拟
+git show bca59eb^:src/publisher/xhs-publish.ts     # 发布主流程
+```
+
+### 真实世界结果（2026-03 我们的测试账号）
+
+1. 发布流程本身全部通过，没有被实时检测拦截
+2. 发布后 **约 24 小时**，账号被后台审计标记为 "AI bot"
+3. 发布后 **3 天**，账号收到 **10 天封禁**
+
+### 为什么所有绕过方案都会失败
+
+XHS 的检测并不只发生在发布那一刻。平台会在账号运行过程中通过综合行为信号进行审计 —— 发文频率、内容指纹、用户画像一致性、互动模式、多账号环境指纹等 —— **前端 stealth 通过 ≠ 账号存活**。这就是典型的「秋后算账」：发布时无感，24-72 小时后统一处理。
+
+这类检测对单个请求做 stealth 没意义，它看的是账号长期行为曲线。
+
+### 建议
+
+- 不要把重要账号用在自动化发布上
+- 用 md2red 这类工具把精力放在 **生成高质量图文**，手动发布
+- 如果一定要自动化，使用一次性养号策略，并预期账号生命周期以「周」计
+
 ## 许可证
 
 MIT
